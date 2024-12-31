@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta Tags -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="themepresss">
+
+    <!-- Page Title -->
+    <title>项目演示</title>
+
+    <!-- Icon fonts -->
+    <link href="static/assets/css/themify-icons.css" rel="stylesheet">
+    <link href="static/assets/css/font-awesome.min.css" rel="stylesheet">
+    <link href="static/assets/css/flaticon.css" rel="stylesheet">
+
+    <!-- Bootstrap core CSS -->
+    <link href="static/assets/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Plugins for this template -->
+    <link href="static/assets/css/animate.css" rel="stylesheet">
+    <link href="static/assets/css/owl.carousel.css" rel="stylesheet">
+    <link href="static/assets/css/owl.theme.css" rel="stylesheet">
+    <link href="static/assets/css/odometer-theme-default.css" rel="stylesheet">
+    <link href="static/assets/css/slick.css" rel="stylesheet">
+    <link href="static/assets/css/slick-theme.css" rel="stylesheet">
+    <link href="static/assets/css/owl.transitions.css" rel="stylesheet">
+    <link href="static/assets/css/jquery.fancybox.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="static/assets/css/style.css" rel="stylesheet">
+    <link href="static/assets/css/responsive.css" rel="stylesheet">
+
+{#    <script src="https://cdn.bootcss.com/jquery/3.0.0/jquery.min.js"></script>#}
+
+
+</head>
+
+<body>
+
+    <!-- start page-wrapper -->
+    <div class="page-wrapper">
+
+        <!-- start preloader -->
+        <div class="preloader">
+            <div class="lds-ripple">
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+        <!-- end preloader -->
+
+        <!-- Start header -->
+        <header id="header" class="site-header header-style-1 header-style-3">
+            <div class="topbar">
+                <div class="container">
+                    <div class="separator"></div>
+                    <div class="row">
+                        <div class="col col-sm-4">
+                            <div class="contact-info">
+                                <ul>
+                                    <li><i class="ti-mobile"></i> 0571-xxxx xxxx</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col col-sm-4">
+                            <div class="contact-info">
+                                <ul>
+                                    <li><i class="ti-email"></i>xxx@ZJU.COM</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col col-sm-4">
+                            <div class="contact-info">
+                                <ul>
+                                    <li><i class="ti-location-pin"></i>Address</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- end container -->
+            </div>
+            <!-- end topbar -->
+
+            <nav class="navigation navbar navbar-default">
+                <div class="container">
+                    <div class="navbar-header">
+
+
+                        <a class="navbar-brand" href="/index"><span>自闭症数字诊断大模型与系统</span></a>
+
+                    </div>
+                    <div id="navbar" class="navbar-collapse collapse navbar-right navigation-holder">
+                        <ul class="nav navbar-nav">
+                            <li><a href="/register">注册</a></li>
+                            <!-- <li><a href="/login">登录</a></li>-->
+        {% if not session.get('username') %}
+            <li><a href="/login">登录</a></li>
+        {% else %}
+
+            <li><a href="/logout">注销</a></li>
+            {% if session.get('role') == 'doctor' %}
+           <li><a href="/doctor_dashboard">医生界面</a></li>
+                 {% endif %}
+        {% endif %}
+                            <li><a href="/deal_data">忘记密码</a></li>
+                            <li><a href="/team">联系客服</a></li>
+
+                        </ul>
+                    </div><!-- end of nav-collapse -->
+                    <!-- end side menu -->
+                </div><!-- end of container -->
+            </nav>
+        </header>
+        <!-- end of header -->
+
+        <!-- counter-area start -->
+        <div class="counter-area">
+            <div class="container" style="padding-bottom: 5%">
+                <p style="font-size: 60px; padding-left: 30%">自闭症诊断网</p>
+                <p style="padding-left: 36%">利用综合信息进行自闭症诊断</p>
+            </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="counter-grids">
+                            <div class="grid">
+                                <div>
+                                    <p>患者特征</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/survey">填写</a></h2>
+                                </div>
+                            </div>
+                            <div class="grid grid-1">
+                                <div>
+                                    <p>自闭症诊断问卷</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/survey2">问卷</a></h2>
+                                </div>
+                            </div>
+                            <div class="grid grid-2">
+                                <div>
+                                    <p>上传诊断内容</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/upload">图像</a></h2>
+                                </div>
+                            </div>
+                            <div class="grid grid-3">
+                                <div>
+                                    <p>上传诊断内容</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/upload_video">视频</a></h2>
+                                </div>
+                            </div>
+                            <div class="grid grid-4">
+                                <div>
+                                    <p>脑神经检查</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/upload">上传</a></h2>
+                                </div>
+                            </div>
+                            <div class="grid grid-5">
+                                <div>
+                                    <p>基因筛查</p>
+                                </div>
+                                <div>
+                                    <h2><a href="/upload_video">检查</a></h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- counter-area end -->
+
+        <!-- start site-footer -->
+        <footer class="site-footer">
+            <div class="lower-footer">
+                <div class="container">
+                    <div class="row">
+                        <div class="separator"></div>
+                        <div class="col col-xs-12" >
+                            <p class="copyright" style="padding-left: 30%">Copyright &copy; 2024. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer><!-- end site-footer -->
+    </div>
+    <!-- end of page-wrapper -->
+
+    <!-- All JavaScript files
+    ================================================== -->
+    <script src="static/assets/js/jquery.min.js"></script>
+    <script src="static/assets/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://assets.pyecharts.org/assets/echarts.min.js"></script>
+
+
+    <!-- Plugins for this template -->
+    <script src="static/assets/js/jquery-plugin-collection.js"></script>
+
+    <!-- Custom script for this template -->
+    <script src="static/assets/js/script.js"></script>
+</body>
+</html>

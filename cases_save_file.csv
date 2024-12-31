@@ -1,0 +1,7 @@
+caseId,age,gender,name,file,uploadDate
+0,1,male,q,case1.csv,2024-12-30 12:45:16
+1,2,male,w,case2.csv,2024-12-30 12:45:23
+2,3,ddmale,e,case2.csv,2024-12-30 12:47:51
+3,4,male,r,case2.csv,2024-12-30 12:47:59
+4,111,male,qqq,bulk_case1.csv,2024-12-30 12:59:53
+5,222,female,ppp,bulk_case2.csv,2024-12-30 12:59:53

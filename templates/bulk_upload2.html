@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload Files</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-container h2 {
+            margin-bottom: 20px;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 400px;
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+        }
+        .drop-area.highlight {
+            border-color: purple;
+        }
+        .dropzone {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+        .dropzone:hover {
+            background-color: #e6f7ff;
+        }
+        .dropzone.active {
+            border-color: #000;
+            color: #000;
+          }
+        .dropzone.accept {
+            border-color: #0f0;
+            color: #0f0;
+        }
+        .dz-message {
+            margin: 0;
+        }
+    </style>
+</head>
+{% extends 'doctor_dashboard2.html' %}
+
+{% block content %}
+<body>
+    <div class="form-container">
+        <h1 style="text-align: center;">批量上传病历</h1>
+<!--            {% with messages = get_flashed_messages() %}-->
+<!--              {% if messages %}-->
+<!--        <ul>-->
+<!--            {% for message in messages %}-->
+<!--              <li>{{ message }}</li>-->
+<!--            {% endfor %}-->
+<!--                </ul>-->
+<!--              {% endif %}-->
+<!--            {% endwith %}-->
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+            <!-- Dropzone 容器 -->
+            <div style="display: flex;">
+                <div id="dropzone" class="dropzone"></div>
+                <div id="dropzone2" class="dropzone"></div>
+            </div>
+
+            <button id="submit-all" type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+
+    <script>
+        var filename = "";
+            // 共享的文件数组
+        var sharedFiles = {};
+        Dropzone.autoDiscover = false;
+        var myDropzone = new Dropzone("#dropzone",  {
+            url: "/bulk_upload", // 上传文件的目标地址
+            paramName: "file", // 用于服务器端接收文件的参数名
+            maxFilesize: 1, // 最大文件大小（单位：MB）
+            acceptedFiles: ".csv", // 接受的文件类型
+            addRemoveLinks: true, // 显示删除链接
+            dictDefaultMessage: "拖拽文件到这里或点击选择CSV格式的 meta 文件",
+            autoProcessQueue: false, // 禁用自动上传// 默认提示信息
+            init: function () {
+                this.on("addedfile", function (file) {
+                     console.log(file)
+                    sharedFiles["csvFile"] = file; // 将文件添加到共享数组
+                });
+                this.on("success", function(file, response) {
+                    filename = response
+                    console.log("Success: ", response);
+                });
+                this.on("error", function(file, response) {
+                    console.log("Error: ", response);
+                });
+            },
+        });
+
+         var myDropzone2 = new Dropzone("#dropzone2",  {
+            url: "/bulk_upload", // 上传文件的目标地址
+            paramName: "file", // 用于服务器端接收文件的参数名
+            maxFilesize: 1, // 最大文件大小（单位：MB）
+            acceptedFiles: ".zip", // 接受的文件类型
+            addRemoveLinks: true, // 显示删除链接
+            dictDefaultMessage: "拖拽文件到这里或点击选择zip格式的 case 文件",
+            autoProcessQueue: false, // 禁用自动上传// 默认提示信息
+            init: function () {
+                this.on("addedfile", function (file) {
+                    console.log(file)
+                    sharedFiles["zipFile"] = file; // 将文件添加到共享数组
+                    console.log(sharedFiles)
+                });
+                this.on("success", function(file, response) {
+                    filename = response
+                    console.log("Success: ", response);
+                });
+                this.on("error", function(file, response) {
+                    console.log("Error: ", response);
+                });
+            },
+        });
+        document.getElementById("upload-form").addEventListener('submit', function(event) {
+            event.preventDefault();
+            // 你的上传逻辑
+        });
+
+        document.getElementById("submit-all").addEventListener("click", function () {
+            for (var i = 0; i < sharedFiles.length; i++) {
+                // 将共享数组中的每个文件添加到任一 Dropzone 实例的队列中
+                // 这里以 dropzone1 为例
+                console.log(sharedFiles[i])
+                myDropzone.enqueueFile(sharedFiles[i]);
+            }
+            console.log(sharedFiles)
+            // 处理队列
+            myDropzone.processQueue();
+            myDropzone2.processQueue();
+
+        });
+
+        // 处理表单提交
+        myDropzone.on("sending", function(file, xhr, formData) {
+            formData.append("csvFile", sharedFiles["csvFile"])
+            formData.append("zipFile", sharedFiles["zipFile"])
+            console.log(formData)
+            console.log(sharedFiles)
+        });
+    </script>
+</body>
+{% endblock %}
+</html>

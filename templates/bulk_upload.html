@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload Files</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-container h2 {
+            margin-bottom: 20px;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 400px;
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+        }
+        .drop-area.highlight {
+            border-color: purple;
+        }
+        .dropzone {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+        .dropzone:hover {
+            background-color: #e6f7ff;
+        }
+        .dropzone.active {
+            border-color: #000;
+            color: #000;
+          }
+        .dropzone.accept {
+            border-color: #0f0;
+            color: #0f0;
+        }
+        .dz-message {
+            margin: 0;
+        }
+    </style>
+</head>
+{% extends 'doctor_dashboard2.html' %}
+
+{% block content %}
+<body>
+    <div class="form-container">
+        <h1 style="text-align: center;">Bulk Upload Files</h1>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+        <ul>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+        <form  action="/bulk_upload" method="post" enctype="multipart/form-data" id="upload-form">
+            <div id="drop-area" class="dropzone">
+                <p>Drag & Drop files here or click to select files</p>
+                <input type="file" name="zipFile" accept=".zip" required>
+                <input type="file" name="csvFile" accept=".csv" required>
+            </div>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+
+    <script>
+        const dropArea = document.getElementById('drop-area');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('highlight');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            ([...files]).forEach(uploadFile);
+        }
+
+        function uploadFile(file) {
+            let formData = new FormData();
+            formData.append('zipFile', file);
+            formData.append('csvFile', file);
+
+            fetch('/bulk_upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.json())
+              .then(data => console.log(data))
+              .catch(error => console.error(error));
+        }
+    </script>
+</body>
+{% endblock %}
+</html>

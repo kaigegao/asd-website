@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Case</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-container h2 {
+            margin-bottom: 20px;
+        }
+        .dropzone {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+        .dropzone:hover {
+            background-color: #e6f7ff;
+        }
+        .dropzone.active {
+            border-color: #000;
+            color: #000;
+          }
+        .dropzone.accept {
+            border-color: #0f0;
+            color: #0f0;
+        }
+        .dz-message {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+   <div class="form-container">
+        <form method="post" enctype="multipart/form-data" id="case-form">
+            <div class="form-group">
+                <label for="title">年龄:</label>
+                 <input type="text" id="age" name="age" value="0" required><br><br>
+            </div>
+
+            <div class="form-group">
+                <label for="author">性别:</label>
+                         <input type="text" id="gender" name="gender" value="male"><br><br>
+            </div>
+
+            <div class="form-group">
+               <label for="name">姓名:</label>
+                         <input type="text" id="name" name="name" value=""><br><br>
+            </div>
+
+            <!-- Dropzone 容器 -->
+            <div id="dropzone" class="dropzone"></div>
+
+            <button id="submit-all" type="submit" class="btn btn-primary">Submit</button>
+        </form>
+   </div>
+
+<script>
+    // 初始化 Dropzone
+    var filename = "";
+    Dropzone.autoDiscover = false;
+    var myDropzone = new Dropzone("#dropzone",  {
+        url: "/file-upload-destination", // 上传文件的目标地址
+        paramName: "file", // 用于服务器端接收文件的参数名
+        maxFilesize: 2, // 最大文件大小（单位：MB）
+        acceptedFiles: ".csv", // 接受的文件类型
+        addRemoveLinks: true, // 显示删除链接
+        dictDefaultMessage: "拖拽文件到这里上传，或点击选择文件...",
+        autoProcessQueue: false, // 禁用自动上传// 默认提示信息
+        init: function () {
+            this.on("success", function(file, response) {
+                filename = response
+                console.log("Success: ", response);
+            });
+            this.on("error", function(file, response) {
+                console.log("Error: ", response);
+            });
+        },
+    });
+    document.getElementById("submit-all").addEventListener("click", function() {
+        myDropzone.processQueue();
+    });
+    // 处理表单提交
+    myDropzone.on("sending", function(file, xhr, formData) {
+        formData.append("age", document.querySelector("#case-form [name='age']").value);
+        formData.append("case-file", file);
+    });
+
+    myDropzone.on("success", function(file, response) {
+    // 这里的 response 是服务器返回的数据
+        console.log("Server response:", response);
+        alert(response)
+        // 你可以在这里根据服务器的响应进行进一步的操作，例如更新 UI 或处理数据
+    });
+
+    myDropzone.on("error", function(file, response) {
+    // 这里的 response 是服务器返回的数据
+        console.log("Server response:", response);
+        alert("Server error response:" + response)
+        // 你可以在这里根据服务器的响应进行进一步的操作，例如更新 UI 或处理数据
+    });
+
+   // 显示提示信息
+    function showSuccessMessage(message) {
+      const messageElement = document.createElement('div');
+      messageElement.innerText = message;
+      messageElement.style.color = 'green';
+      messageElement.style.textAlign = 'center';
+      document.body.appendChild(messageElement);
+
+      // 3秒后自动消失
+      setTimeout(() => {
+        document.body.removeChild(messageElement);
+      }, 3000);
+    }
+</script>
+
+</body>
+</html>

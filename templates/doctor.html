@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>左侧菜单示例</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+  }
+  .sidebar {
+    height: 100%;
+    width: 200px;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    padding-top: 20px;
+  }
+  .sidebar a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    font-size: 18px;
+    color: #818181;
+    display: block;
+  }
+  .sidebar a:hover {
+    color: #f1f1f1;
+  }
+  .main-content {
+    margin-left: 200px; /* Same as the width of the sidebar */
+    padding: 0px 10px;
+  }
+  .form-container {
+    display: none; /* Hide the form container by default */
+    padding: 20px;
+    background-color: #f1f1f1;
+    margin-top: 15px;
+  }
+  .info-container {
+    display: none; /* Hide the form container by default */
+    padding: 20px;
+    background-color: #f1f1f1;
+    margin-top: 15px;
+  }
+  .dropzone {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    color: #ccc;
+    margin: 20px 0;
+    cursor: pointer;
+  }
+  .dropzone.active {
+    border-color: #000;
+    color: #000;
+  }
+  .dropzone.accept {
+    border-color: #0f0;
+    color: #0f0;
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <a href="#information" onclick="showInfo()">个人信息</a>
+    <a href="#news" onclick="showForm()">单一上传病例</a>
+    <a href="#uploadSingle" onclick="showUploadSingle()">批量上传病例</a>
+    <a href="#about">病例管理</a>
+    <a href="/upload_case">病例管理</a>
+    <a href="#about">退出登录</a>
+</div>
+
+<div class="main-content">
+    <div id="profile" class="profile" class="info-container">
+        <h3>个人信息</h3>
+        <p><strong>姓名:</strong> 张三</p>
+        <p><strong>职业:</strong> 软件工程师</p>
+        <p><strong>邮箱:</strong> zhangsan@example.com</p>
+        <p><strong>电话:</strong> 123-456-7890</p>
+    </div>
+      <!-- News Form Container -->
+    <div id="form" class="form-container">
+        <h2>提交新闻</h2>
+        <form>
+            <label for="title">新闻标题:</label>
+             <input type="text" id="title" name="title" required><br><br>
+
+             <label for="author">作者:</label>
+             <input type="text" id="author" name="author"><br><br>
+
+            <label for="content">内容:</label>
+            <textarea id="content" name="content" rows="4" cols="50" required></textarea><br><br>
+
+            <input type="submit" value="提交新闻">
+        </form>
+    </div>
+    <div id="uploadSingle" style="display: none;">
+        <h2>单一上传病历</h2>
+        <div >
+            <h2>病历表单</h2>
+            <form>
+                <label for="title">新闻标题:</label>
+                 <input type="text" id="title" name="title" required><br><br>
+
+                 <label for="author">作者:</label>
+                 <input type="text" id="author" name="author"><br><br>
+
+                <label for="content">内容:</label>
+                <textarea id="content" name="content" rows="4" cols="50" required></textarea><br><br>
+
+                <input type="submit" value="提交新闻">
+            </form>
+        </div>
+        <div id="dropzone" class="dropzone">
+          拖拽文件到这里上传
+        </div>
+    </div>
+</div>
+<script>
+function showForm() {
+  document.getElementById('form').style.display = 'block';
+  document.getElementById('uploadSingle').style.display = 'none';
+  document.getElementById('profile').style.display = 'none';
+}
+function showInfo() {
+  document.getElementById('uploadSingle').style.display = 'none';
+  document.getElementById('profile').style.display = 'block';
+  document.getElementById('form').style.display = 'none';
+}
+function showUploadSingle() {
+  document.getElementById('uploadSingle').style.display = 'block';
+  document.getElementById('profile').style.display = 'none';
+  document.getElementById('form').style.display = 'none';
+}
+// 拖拽上传文件的函数
+let dropzone = document.querySelector('#drop')
+dropzone.addEventListener('dragover', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('dragover event');
+    this.classList.add('active');
+});
+
+dropzone.addEventListener('dragleave', function(e) {
+  console.log('dragleave event');
+  this.classList.remove('active');
+});
+dropzone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('active');
+  this.classList.add('accept');
+  var files = e.dataTransfer.files;
+  uploadFiles(files);
+});
+dropzone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('active');
+  this.classList.add('accept');
+  var files = e.dataTransfer.files;
+  uploadFiles(files);
+});
+function uploadFiles(files) {
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var formData = new FormData();
+        formData.append('file', file);
+        // 这里可以使用fetch或者XMLHttpRequest来上传文件
+        // 例如：
+        console.log(formData)
+        fetch('/upload', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log('文件上传成功:', result);
+        })
+        .catch(error => {
+          console.error('文件上传失败:', error);
+        });
+   }
+}
+</script>
+</body>
+</html>

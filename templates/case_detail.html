@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Detail</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Case Details</h2>
+        <p><strong>ID:</strong> {{ case.caseId }}</p>
+        <p><strong>Name:</strong> {{ case.name }}</p>
+        <p><strong>Age:</strong> {{ case.age }}</p>
+        <p><strong>Gender:</strong> {{ case.gender }}</p>
+        <p><strong>File:</strong> {{ case.file }}</p>
+        <p><strong>Date:</strong> {{ case.date }}</p>
+
+        <h3>File Content</h3>
+        {{ table_html|safe }}
+
+        <a href="{{ url_for('view_cases') }}" class="btn btn-primary mt-3">Back to Cases</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
