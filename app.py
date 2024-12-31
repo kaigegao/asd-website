@@ -108,7 +108,7 @@ def file_upload_destination():
             'gender': request.form.get("gender"),
             'name': request.form.get("name"),
             'file': file.filename,
-            'uploadDate': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         cases.append(data)
         # df = pd.DataFrame([data])
@@ -117,7 +117,6 @@ def file_upload_destination():
         # file_path = app.config.get("case_save_file")
         # df.to_csv(file_path, mode='a', header=False, index=True)
         file_path = app.config.get("case_save_file")
-        # print(file_path)
         case_id = get_next_case_id(file_path)
         # print(case_id)
         data_with_case_id = {'caseId': case_id, **data}
@@ -127,6 +126,7 @@ def file_upload_destination():
             existing_df = pd.read_csv(file_path)
             updated_df = pd.concat([existing_df, df], ignore_index=True)
             updated_df.to_csv(file_path, index=False)
+
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
 

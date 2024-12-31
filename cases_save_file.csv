@@ -5,3 +5,6 @@ caseId,age,gender,name,file,uploadDate
 3,4,male,r,case2.csv,2024-12-30 12:47:59
 4,111,male,qqq,bulk_case1.csv,2024-12-30 12:59:53
 5,222,female,ppp,bulk_case2.csv,2024-12-30 12:59:53
+6,18,male,ssssss,case2.csv,2024-12-31 17:16:26
+7,18,male,aaa,case1.csv,2024-12-31 17:16:39
+8,111,male,gggggg,case1.csv,2024-12-31 17:17:27
