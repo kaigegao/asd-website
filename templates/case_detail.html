@@ -4,26 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Case Detail</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .scrollable-table {
+            width: 100%;
+            height: 300px;
+            overflow: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        .plot-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+        }
+        #column-input {
+            width: 300px; /* 调整输入框的宽度 */
+            padding: 5px;
+            font-size: 16px;
+        }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2>Case Details</h2>
-        <p><strong>ID:</strong> {{ case.caseId }}</p>
-        <p><strong>Name:</strong> {{ case.name }}</p>
-        <p><strong>Age:</strong> {{ case.age }}</p>
-        <p><strong>Gender:</strong> {{ case.gender }}</p>
-        <p><strong>File:</strong> {{ case.file }}</p>
-        <p><strong>Date:</strong> {{ case.date }}</p>
-
-        <h3>File Content</h3>
+    <h1>{{ case }}</h1>
+    <div class="scrollable-table">
         {{ table_html|safe }}
-
-        <a href="{{ url_for('view_cases') }}" class="btn btn-primary mt-3">Back to Cases</a>
     </div>
+    <input type="text" id="column-input" placeholder="Enter column header like #10">
+    <button onclick="generatePlot()">Generate Plot</button>
+    <div class="plot-container" id="plot-container"></div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function generatePlot() {
+            const columnInput = document.getElementById('column-input').value;
+            const plotContainer = document.getElementById('plot-container');
+
+            fetch(`/get_column_data/${encodeURIComponent(columnInput)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    const trace = {
+                        x: data.index,
+                        y: data.values,
+                        mode: 'lines+markers',
+                        type: 'scatter'
+                    };
+
+                    const layout = {
+                        title: `Data for Column ${columnInput}`,
+                        xaxis: { title: 'Index' },
+                        yaxis: { title: 'Value' }
+                    };
+
+                    Plotly.newPlot(plotContainer, [trace], layout);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
 </body>
 </html>

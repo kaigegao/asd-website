@@ -107,7 +107,7 @@ def file_upload_destination():
             'age': request.form.get("age"),
             'gender': request.form.get("gender"),
             'name': request.form.get("name"),
-            'file': file.filename,
+            'file': filename,
             'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         cases.append(data)
@@ -273,22 +273,48 @@ def view_cases():
 
 @app.route('/case_detail/<int:case_id>')
 def case_detail(case_id):
-    if case_id < 0 or case_id >= len(cases):
-        flash('无效的病例ID', 'danger')
-        return redirect(url_for('view_cases'))
-
-    case = cases[case_id]
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], case['file'])
+    # if case_id < 0 or case_id >= len(cases):
+    #     flash('无效的病例ID', 'danger')
+    #     return redirect(url_for('view_cases'))
+    file_path = app.config.get("case_save_file")
+    df = pd.read_csv(file_path)
+    result = df.loc[df['caseId'] == case_id, 'file']
+    # case = cases[case_id]
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(result.iloc[0]))
 
     try:
         # 读取文件内容
-        data = pd.read_csv(file_path)
-        table_html = data.to_html(index=False)
+        data = pd.read_csv(file_path, index_col=0)
+        table_html = data.to_html(index=True)
     except Exception as e:
-        flash(f'Error reading file {case["file"]}: {str(e)}', 'danger')
+        flash(f'Error reading file : {str(e)}', 'danger')
         return redirect(url_for('view_cases'))
 
-    return render_template('case_detail.html', case=case, table_html=table_html)
+    return render_template('case_detail.html',  case= result.iloc[0],table_html=table_html)
+
+
+@app.route('/get_column_data/<string:column_header>')
+def get_column_data(column_header):
+    case_id = 0  # 这里假设只处理第一个案例，你可以根据需要调整
+    if case_id < 0 or case_id >= len(cases):
+        return {'error': 'Invalid case ID'}, 400
+
+    case = cases[case_id]
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(case['file']))
+
+    try:
+        # 读取文件内容，将第一列设置为索引
+        data = pd.read_csv(file_path, index_col=0)
+
+        if column_header not in data.columns:
+            return {'error': f'Column {column_header} not found'}, 400
+
+        index = data.index.tolist()
+        values = data[column_header].tolist()
+
+        return {'index': index, 'values': values}
+    except Exception as e:
+        return {'error': str(e)}, 500
 
 
 @app.route('/change_password', methods=['GET', 'POST'])
@@ -478,4 +504,4 @@ if __name__ == '__main__':
     # 设置上传文件夹路径
     # app.config['UPLOAD_FOLDER'] = r"E:\working_dir\py_project\zibizheng\uploads"
     # 确保上传文件夹存在
-    app.run(debug=True)
+    app.run(debug=False)
