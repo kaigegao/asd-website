@@ -3,14 +3,18 @@ import datetime
 from datetime import datetime, timedelta
 import logging
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 import zipfile
 import csv
 
+import torch
+import numpy as np
+from models.MyModel import MyModel  # Ensure this import matches your directory structure
+from flask_cors import CORS
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
-
+CORS(app)
 # 允许上传的文件类型
 ALLOWED_EXTENSIONS = {'csv', 'txt'}
 # 存储问卷数据的列表
@@ -23,7 +27,48 @@ app.config['case_save_file'] = "./cases_save_file.csv"
 app.config['user_info_file'] = "./user_info_file.csv"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 cases = []
-global viewing_file
+# global viewing_file
+
+
+# Configuration class for model parameters
+class DefaultConfig(object):
+    dataset = "Kaggle"
+    d_model = 1024
+    n_layer = 24
+    ssm_cfg = dict()
+    norm_epsilon = 1e-5
+    rms_norm = True
+    residual_in_fp32 = True
+    fused_add_norm = True
+    initializer_cfg = None
+    lr = 4.3895647763297976e-05
+    hidden_1 = 1024
+    hidden_2 = 1024
+    batch_size = 32
+    num_workers = 0
+    embed = "fixed"
+    freq = "h"
+    dropout = 0.3762915331187696
+    num_class = 2
+    pred_len = 0
+    if dataset == "Kaggle":
+        enc_in = 110
+        seq_len = 176
+    elif dataset == "ABIDE_preprocessed":
+        enc_in = 111
+        seq_len = 316
+    device = torch.device("cuda:{}".format(0) if torch.cuda.is_available() else "cpu")
+    dtype = torch.float32
+
+    model_path = "models/Mamba_GCN_OF_dmodel_1024_nlayer_24_lr_4.3895647763297976e-05_dropout_0.3762915331187696_hidden1_1024_hidden2_1024.pth"
+
+args = DefaultConfig()
+model = MyModel(args)
+state_dict = torch.load(args.model_path, map_location=args.device)
+model.load_state_dict(state_dict)
+model.to(args.device)
+model.eval()
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -280,7 +325,7 @@ def case_detail(case_id):
     df = pd.read_csv(file_path)
     result = df.loc[df['caseId'] == case_id, 'file']
     # case = cases[case_id]
-    global viewing_file
+
     viewing_file = secure_filename(result.iloc[0])
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(result.iloc[0]))
 
@@ -295,14 +340,14 @@ def case_detail(case_id):
     return render_template('case_detail.html',  case= result.iloc[0],table_html=table_html)
 
 
-@app.route('/get_column_data/<string:column_header>')
-def get_column_data(column_header):
+@app.route('/get_column_data/<string:viewing_file>/<string:column_header>')
+def get_column_data(viewing_file , column_header):
     # case_id = 0  # 这里假设只处理第一个案例，你可以根据需要调整
     # if case_id < 0 or case_id >= len(cases):
     #     return {'error': 'Invalid case ID'}, 400
     #
     # case = cases[case_id]
-    global viewing_file
+
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
 
     try:
@@ -318,6 +363,68 @@ def get_column_data(column_header):
         return {'index': index, 'values': values}
     except Exception as e:
         return {'error': str(e)}, 500
+
+
+@app.route('/predict/<string:viewing_file>', methods=['POST'])
+def predict_case(viewing_file):
+    # if case_id < 0 or case_id >= len(cases):
+    #     return jsonify({'error': '无效的病例ID'}), 400
+    #
+    # case = cases[case_id]
+    # file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(case['file']))
+
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
+    try:
+        # 读取文件内容，将第一列设置为索引
+        data = pd.read_csv(file_path)
+
+        # 假设你有一个预测函数 predict
+        diagnosis, risk = predict(data.values)
+
+        return jsonify({'diagnosis': diagnosis, 'risk': risk})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Preprocess the data to fit the model input requirements
+def preprocess_data(data):
+    seq_len = args.seq_len
+    enc_in = args.enc_in
+    current_seq_len, current_enc_in = data.shape
+
+    if current_seq_len < seq_len:
+        data = np.vstack((data, np.zeros((seq_len - current_seq_len, current_enc_in))))
+    elif current_seq_len > seq_len:
+        data = data[:seq_len, :]
+
+    if current_enc_in < enc_in:
+        data = np.hstack((data, np.zeros((seq_len, enc_in - current_enc_in))))
+    elif current_enc_in > enc_in:
+        data = data[:, :enc_in]
+
+    inputs = torch.tensor(data)
+    return inputs
+
+# Predict function using the pre-trained model
+def predict(data):
+    inputs = preprocess_data(data)
+    inputs = inputs.unsqueeze(0).float().to(args.device)
+    with torch.no_grad():
+        try:
+            logit, _, _, _ = model(inputs)
+            _, predicted = torch.max(logit, 1)
+            proba = torch.nn.functional.softmax(logit, dim=1).detach().cpu().numpy()
+            diagnosis = 'ASD' if predicted.item() == 0 else 'Normal'
+            risk = float(proba[0][predicted.item()]).__round__(4)
+        except Exception as e:
+            print("Error in predict:", e)
+            raise e
+    if diagnosis == 'ASD':
+        return diagnosis, risk
+    else:
+        asd_risk = (1 - risk).__round__(4)
+        return diagnosis, asd_risk
 
 
 @app.route('/change_password', methods=['GET', 'POST'])

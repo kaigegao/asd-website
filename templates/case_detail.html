@@ -22,24 +22,41 @@
             padding: 5px;
             font-size: 16px;
         }
+        #prediction-result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .center-button {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
     </style>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <h1>{{ case }}</h1>
+    <h1 id="case-title">{{ case }}</h1>
     <div class="scrollable-table">
         {{ table_html|safe }}
     </div>
     <input type="text" id="column-input" placeholder="Enter column header like #10">
     <button onclick="generatePlot()">Generate Plot</button>
     <div class="plot-container" id="plot-container"></div>
+    <button class="center-button" onclick="makePrediction()">Predict</button>
+    <div id="prediction-result"></div>
 
     <script>
+        function getCaseTitle() {
+            return document.getElementById('case-title').innerText;
+        }
         function generatePlot() {
             const columnInput = document.getElementById('column-input').value;
+            const caseTitle = getCaseTitle();
             const plotContainer = document.getElementById('plot-container');
 
-            fetch(`/get_column_data/${encodeURIComponent(columnInput)}`)
+            fetch(`/get_column_data/${encodeURIComponent(caseTitle)}/${encodeURIComponent(columnInput)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
@@ -63,6 +80,27 @@
                     Plotly.newPlot(plotContainer, [trace], layout);
                 })
                 .catch(error => console.error('Error:', error));
+        }
+
+        function makePrediction() {
+            const caseTitle = getCaseTitle();
+            fetch(`/predict/${encodeURIComponent(caseTitle)}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                const predictionResultDiv = document.getElementById('prediction-result');
+                predictionResultDiv.innerHTML = `
+                    <p><strong>Diagnosis:</strong> ${data.diagnosis}</p>
+                    <p><strong>Risk:</strong> ${data.risk}</p>
+                `;
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
