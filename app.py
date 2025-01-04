@@ -23,7 +23,7 @@ app.config['case_save_file'] = "./cases_save_file.csv"
 app.config['user_info_file'] = "./user_info_file.csv"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 cases = []
-
+global viewing_file
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -280,6 +280,8 @@ def case_detail(case_id):
     df = pd.read_csv(file_path)
     result = df.loc[df['caseId'] == case_id, 'file']
     # case = cases[case_id]
+    global viewing_file
+    viewing_file = secure_filename(result.iloc[0])
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(result.iloc[0]))
 
     try:
@@ -295,12 +297,13 @@ def case_detail(case_id):
 
 @app.route('/get_column_data/<string:column_header>')
 def get_column_data(column_header):
-    case_id = 0  # 这里假设只处理第一个案例，你可以根据需要调整
-    if case_id < 0 or case_id >= len(cases):
-        return {'error': 'Invalid case ID'}, 400
-
-    case = cases[case_id]
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(case['file']))
+    # case_id = 0  # 这里假设只处理第一个案例，你可以根据需要调整
+    # if case_id < 0 or case_id >= len(cases):
+    #     return {'error': 'Invalid case ID'}, 400
+    #
+    # case = cases[case_id]
+    global viewing_file
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
 
     try:
         # 读取文件内容，将第一列设置为索引
