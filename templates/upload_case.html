@@ -94,6 +94,15 @@
             this.on("success", function(file, response) {
                 filename = response
                 console.log("Success: ", response);
+                fetch(`/case_detail/9`, {
+                method: 'GET', // 或者根据需要使用其他HTTP方法
+                })
+                .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch case detail');
+                }
+                return response.json(); // 解析 JSON 响应
+                })
             });
             this.on("error", function(file, response) {
                 console.log("Error: ", response);
@@ -111,10 +120,27 @@
         formData.append("case-file", file);
     });
 
+
+
+    document.getElementById("submit-all").addEventListener("click", function(event) {
+    event.preventDefault(); // 阻止表单默认提交行为
+    myDropzone.processQueue();
+    });
+
     myDropzone.on("success", function(file, response) {
     try {
         var caseId = JSON.parse(response).case_id; // 假设服务器返回的是JSON格式的数据
-        window.location.href = `/case_detail/${caseId}`;
+        console.log("Case ID received from server:", caseId); // 确认接收到 case_id
+        // 设置3秒（3000毫秒）的延迟后重定向
+        fetch(`/case_detail/9`, {
+            method: 'GET', // 或者根据需要使用其他HTTP方法
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch case detail');
+            }
+            return response.json(); // 解析 JSON 响应
+        })
     } catch (e) {
         console.error("Failed to parse server response or redirect:", e);
         alert("Upload successful but unable to proceed to the detail page.");

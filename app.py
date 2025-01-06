@@ -175,12 +175,17 @@ def file_upload_destination():
 
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
+
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
+        data = pd.read_csv(file_path, index_col=0)
+        table_html = data.to_html(index=True)
         # 返回包含case_id的JSON响应给前端
-        return jsonify({'case_id': data_with_case_id['caseId']}), 200
+        # return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
+        return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
-    return "success"
+    return jsonify({'case_id': data_with_case_id['caseId']}), 200
 
 
 
