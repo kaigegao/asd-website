@@ -129,17 +129,17 @@ def get_next_case_id(filename):
         else:
             return existing_df['caseId'].max() + 1
     except FileNotFoundError:
-        return 0
-    except FileNotFoundError:
+        print('FileNotFound')
         return 0
     except pd.errors.EmptyDataError:
+        print('EmptyData')
         return 0
     except pd.errors.ParserError:
+        print('ParserError')
         return 0
 
 @app.route('/api/upload_case', methods=['GET', 'POST'])
 def file_upload_destination():
-    # print(request.form)
     file = request.files.get("file")
     if file.filename == '':
         flash('No selected file')
@@ -152,20 +152,21 @@ def file_upload_destination():
             'age': request.form.get("age"),
             'gender': request.form.get("gender"),
             'name': request.form.get("name"),
+            'fmri.image': "None",
             'file': filename,
-            'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            #保留预测功能
+            'diagnosis':"ASD",
+            # 保留预测功能
+            'risk':"0.88888",
+            'doctor':session['username']
         }
         cases.append(data)
-        # df = pd.DataFrame([data])
-        # df['uploadDate'] = pd.to_datetime(df['uploadDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        # print(cases)
-        # file_path = app.config.get("case_save_file")
-        # df.to_csv(file_path, mode='a', header=False, index=True)
         file_path = app.config.get("case_save_file")
         case_id = get_next_case_id(file_path)
-        # print(case_id)
+
         data_with_case_id = {'caseId': case_id, **data}
-        columns_order = ['caseId', 'age', 'gender', 'name', 'file', 'uploadDate']
+        columns_order = ['caseId', 'age', 'gender', 'name', 'fmri.image','file', 'uploadDate','diagnosis','risk','doctor']
         df = pd.DataFrame([data_with_case_id], columns=columns_order)
         try:
             existing_df = pd.read_csv(file_path)
@@ -174,10 +175,8 @@ def file_upload_destination():
 
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
-
-        # print(cases)
-        # print('----------')
-        # print(updated_df)
+        # 返回包含case_id的JSON响应给前端
+        return jsonify({'case_id': data_with_case_id['caseId']}), 200
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
@@ -292,21 +291,13 @@ def get_csv_row_value(csv_path, filename, column_name):
 @app.route('/view_cases')
 def view_cases():
     records = []
-
-    # print(cases)
     try:
-        # indexed_data = [(i, case) for i, case in enumerate(cases)]
-        # df = pd.DataFrame(indexed_data, columns=['caseId', 'data'])
         file_path = app.config.get("case_save_file")
-        # # df = pd.read_csv(file_path)
-        #
-        # print('---------------------------------')
-        # df_expanded = df.join(pd.json_normalize(df['data']))
-        # df_final = df_expanded.drop(columns=['data'])
-        # df_final.rename(columns={'uploadDate': 'date'}, inplace=True)
-        # print(df_final)
+
         df_final = pd.read_csv(file_path)
-        camel = df_final.to_html(classes='table table-striped', index=False, escape=False, formatters={
+        filtered_df = df_final[df_final['doctor'] == session.get('username')]
+
+        camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
             'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
         })
         records.append(("病历信息", camel))
@@ -318,13 +309,9 @@ def view_cases():
 
 @app.route('/case_detail/<int:case_id>')
 def case_detail(case_id):
-    # if case_id < 0 or case_id >= len(cases):
-    #     flash('无效的病例ID', 'danger')
-    #     return redirect(url_for('view_cases'))
     file_path = app.config.get("case_save_file")
     df = pd.read_csv(file_path)
     result = df.loc[df['caseId'] == case_id, 'file']
-    # case = cases[case_id]
 
     viewing_file = secure_filename(result.iloc[0])
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(result.iloc[0]))
@@ -514,7 +501,7 @@ def register():
             'password': password,
             'role': role,
             'hospital': hospital,
-            'registration_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'registration_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         users.append(data)
         try:

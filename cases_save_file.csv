@@ -1,13 +1,19 @@
-caseId,age,gender,name,file,uploadDate
-0,18,male,aaa,Normal_Subject_01.csv,2025-01-04 13:52:24
-1,22,male,bbb,ASD_Subject_02.csv,2025-01-04 13:53:01
-2,33,male,ccc,ASD_Subject_03.csv,2025-01-04 13:53:31
-3,18,male,ddd,Normal_Subject_03.csv,2025-01-04 13:53:54
-4,18,male,test,ASD_Subject_50.csv,2025-01-04 20:14:32
-5,18,male,name,Normal_Subject_50.csv,2025-01-04 20:15:47
-6,18,male,name,Normal_Subject_46.csv,2025-01-04 20:15:58
-7,18,male,name,Normal_Subject_42.csv,2025-01-04 20:16:01
-8,18,male,name,ASD_Subject_07.csv,2025-01-04 20:16:03
-9,18,male,name,ASD_Subject_27.csv,2025-01-04 20:16:40
-10,111,male,qqqqqqq,ASD_Subject_08.csv,2025-01-05 00:14:28
-11,18,male,name,ASD_Subject_08.csv,2025-01-05 00:15:40
+caseId,age,gender,name,fmri.image,file,uploadDate,diagnosis,risk,doctor
+0,18,male,name,,ASD_Subject_02.csv,2025-01-06 15:58:28,ASD,0.88888,qqq
+1,18,male,name,,ASD_Subject_03.csv,2025-01-06 15:59:58,ASD,0.88888,qqq
+2,18,male,name,,ASD_Subject_04.csv,2025-01-06 16:00:34,ASD,0.88888,qqq
+3,18,male,name,,ASD_Subject_05.csv,2025-01-06 16:01:07,ASD,0.88888,qqq
+4,18,male,name,,Normal_Subject_01.csv,2025-01-06 16:10:07,ASD,0.88888,qqq
+5,18,male,name,,Normal_Subject_02.csv,2025-01-06 16:10:58,ASD,0.88888,qqq
+6,18,male,name,,Normal_Subject_03.csv,2025-01-06 16:26:47,ASD,0.88888,qqq
+7,18,male,name,,Normal_Subject_04.csv,2025-01-06 16:27:38,ASD,0.88888,qqq
+8,18,male,name,,Normal_Subject_05.csv,2025-01-06 16:28:16,ASD,0.88888,qqq
+9,18,male,name,,Normal_Subject_06.csv,2025-01-06 16:29:02,ASD,0.88888,qqq
+10,18,male,name,,Normal_Subject_07.csv,2025-01-06 16:31:45,ASD,0.88888,qqq
+11,18,male,name,,Normal_Subject_10.csv,2025-01-06 16:32:36,ASD,0.88888,qqq
+12,18,male,name,,Normal_Subject_11.csv,2025-01-06 16:34:29,ASD,0.88888,qqq
+13,18,male,name,,Normal_Subject_12.csv,2025-01-06 16:34:56,ASD,0.88888,qqq
+14,18,male,name,,Normal_Subject_13.csv,2025-01-06 16:35:02,ASD,0.88888,qqq
+15,18,male,name,,Normal_Subject_14.csv,2025-01-06 16:35:57,ASD,0.88888,qqq
+16,18,male,name,,Normal_Subject_15.csv,2025-01-06 16:36:05,ASD,0.88888,qqq
+17,18,male,name,None,Normal_Subject_16.csv,2025-01-06 16:37:33,ASD,0.88888,qqq
