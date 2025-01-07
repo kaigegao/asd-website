@@ -47,6 +47,7 @@
         .dz-message {
             margin: 0;
         }
+
     </style>
 </head>
 {% extends 'doctor_dashboard2.html' %}
@@ -54,6 +55,7 @@
 {% block content %}
 <body>
    <div class="form-container">
+       <h1 style="text-align: center;">CSV Upload Files</h1>
         <form method="post" enctype="multipart/form-data" id="case-form">
             <div class="form-group">
                 <label for="title">年龄:</label>
@@ -78,6 +80,7 @@
         </form>
    </div>
 
+
 <script>
     // 初始化 Dropzone
     var filename = "";
@@ -94,15 +97,6 @@
             this.on("success", function(file, response) {
                 filename = response
                 console.log("Success: ", response);
-                fetch(`/case_detail/9`, {
-                method: 'GET', // 或者根据需要使用其他HTTP方法
-                })
-                .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch case detail');
-                }
-                return response.json(); // 解析 JSON 响应
-                })
             });
             this.on("error", function(file, response) {
                 console.log("Error: ", response);
@@ -127,24 +121,30 @@
     myDropzone.processQueue();
     });
 
+    // myDropzone.on("success", function(file, response) {
+    // try {
+    //     var caseId = JSON.parse(response).case_id; // 假设服务器返回的是JSON格式的数据
+    //     console.log("Case ID received from server:", caseId); // 确认接收到 case_id
+    //     // 设置3秒（3000毫秒）的延迟后重定向
+    //     fetch(`/case_detail/9`, {
+    //         method: 'GET', // 或者根据需要使用其他HTTP方法
+    //     })
+    //     .then(response => {
+    //         if (!response.ok) {
+    //             throw new Error('Failed to fetch case detail');
+    //         }
+    //         return response.json(); // 解析 JSON 响应
+    //     })
+    // } catch (e) {
+    //     console.error("Failed to parse server response or redirect:", e);
+    //     alert("Upload successful but unable to proceed to the detail page.");
+    // }
+    // });
     myDropzone.on("success", function(file, response) {
-    try {
-        var caseId = JSON.parse(response).case_id; // 假设服务器返回的是JSON格式的数据
-        console.log("Case ID received from server:", caseId); // 确认接收到 case_id
-        // 设置3秒（3000毫秒）的延迟后重定向
-        fetch(`/case_detail/9`, {
-            method: 'GET', // 或者根据需要使用其他HTTP方法
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch case detail');
-            }
-            return response.json(); // 解析 JSON 响应
-        })
-    } catch (e) {
-        console.error("Failed to parse server response or redirect:", e);
-        alert("Upload successful but unable to proceed to the detail page.");
-    }
+    // 这里的 response 是服务器返回的数据
+        console.log("Server response:", response);
+        alert(response)
+        // 你可以在这里根据服务器的响应进行进一步的操作，例如更新 UI 或处理数据
     });
 
     myDropzone.on("error", function(file, response) {

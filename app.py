@@ -12,6 +12,14 @@ import torch
 import numpy as np
 from models.MyModel import MyModel  # Ensure this import matches your directory structure
 from flask_cors import CORS
+
+from nilearn import datasets
+from nilearn.image import load_img
+from nilearn import masking
+from nilearn.image import resample_to_img
+from nilearn.input_data import NiftiLabelsMasker
+
+
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 CORS(app)
@@ -176,22 +184,26 @@ def file_upload_destination():
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
 
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
-        data = pd.read_csv(file_path, index_col=0)
-        table_html = data.to_html(index=True)
+        # file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
+        # data = pd.read_csv(file_path, index_col=0)
+        # table_html = data.to_html(index=True)
         # 返回包含case_id的JSON响应给前端
-        # return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
-        return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
+        #return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
+        # return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
-    return jsonify({'case_id': data_with_case_id['caseId']}), 200
-
+    # return jsonify({'case_id': data_with_case_id['caseId']}), 200
+    return "Data has been uploaded and processed successfully. Click 'View Results' to see the details."
 
 
 @app.route('/upload_case', methods=['GET', 'POST'])
 def upload_case():
     return render_template('upload_case.html')
+
+
+
+
 
 
 @app.route('/return_to_upload')
@@ -273,6 +285,86 @@ def upload_files():
             return redirect(request.url)
 
     return render_template('bulk_upload2.html')
+
+
+@app.route('/fmri_image_upload', methods=['GET', 'POST'])
+def upload_image_files():
+
+    if request.method == 'POST':
+        file = request.files.get("imagefile")
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        try:
+            filename = file.filename
+            filename2 = filename.replace('.nii.gz', '')
+            file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
+
+            file.save(file_path)
+            convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+            data = {
+                'age': request.form.get("age"),
+                'gender': request.form.get("gender"),
+                'name': request.form.get("name"),
+                'fmri.image': filename,
+                'file':filename2+ '_timeseries.csv',
+                'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                # 保留预测功能
+                'diagnosis': "ASD",
+                # 保留预测功能
+                'risk': "0.88888",
+                'doctor': session['username']
+            }
+
+            file_path = app.config.get("case_save_file")
+            case_id = get_next_case_id(file_path)
+
+            data_with_case_id = {'caseId': case_id, **data}
+            columns_order = ['caseId', 'age', 'gender', 'name', 'fmri.image', 'file', 'uploadDate', 'diagnosis', 'risk',
+                             'doctor']
+            df = pd.DataFrame([data_with_case_id], columns=columns_order)
+            try:
+                existing_df = pd.read_csv(file_path)
+                updated_df = pd.concat([existing_df, df], ignore_index=True)
+                updated_df.to_csv(file_path, index=False)
+
+            except pd.errors.EmptyDataError:
+                df.to_csv(file_path, index=False)
+
+            # file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
+            # data = pd.read_csv(file_path, index_col=0)
+            # table_html = data.to_html(index=True)
+            # 返回包含case_id的JSON响应给前端
+            # return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
+            # return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
+        except Exception as e:
+            flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
+
+        # return jsonify({'case_id': data_with_case_id['caseId']}), 200
+        return "Data has been uploaded and processed successfully. Click 'View Results' to see the details."
+    return render_template('image_upload.html')
+
+def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
+    dataset = datasets.fetch_atlas_aal()
+    atlas_filename = dataset.maps
+    labels = dataset.labels
+    fMRIData = load_img(image_path)
+    mask = masking.compute_background_mask(fMRIData)
+    Atlas = resample_to_img(atlas_filename, mask, interpolation='nearest')
+    masker = NiftiLabelsMasker(labels_img=Atlas, standardize=True,
+                            memory='nilearn_cache', verbose=0)
+    time_series = masker.fit_transform(fMRIData)
+    if time_series.shape[1] != len(labels):
+        print('Error: time_series.shape[1] != len(labels)')
+        print(time_series[0,:])
+        print("====================================================")
+        print(labels)
+    df = pd.DataFrame(time_series, columns=labels)
+    save_path = os.path.join(fmri_save_path, file_name + '_timeseries.csv')
+    df.to_csv(save_path, index=True)
+
+
+
 
 def get_csv_filenames(csv_path):
     filenames = set()
