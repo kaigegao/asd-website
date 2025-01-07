@@ -27,4 +27,14 @@ caseId,age,gender,name,fmri.image,file,uploadDate,diagnosis,risk,doctor
 25,18.0,male,name,,ASD_Subject_22.csv,2025-01-07 17:08:57,ASD,0.88888,qqq
 26,18.0,male,name,sub-28741_ses-1_task-rest_run-1_bold.nii.gz,sub-28741_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-07 17:12:07,ASD,0.88888,qqq
 27,18.0,male,name,,ASD_Subject_03.csv,2025-01-07 18:14:20,ASD,0.88888,qqq
-28,18,male,name,None,ASD_Subject_05.csv,2025-01-07 18:15:24,ASD,0.88888,qqq
+28,18.0,male,name,,ASD_Subject_05.csv,2025-01-07 18:15:24,ASD,0.88888,qqq
+29,18.0,male,name,,ASD_Subject_12.csv,2025-01-07 18:17:12,ASD,0.88888,qqq
+30,18.0,male,name,,ASD_Subject_12.csv,2025-01-07 18:25:42,ASD,0.88888,qqq
+31,18.0,male,name,,ASD_Subject_19.csv,2025-01-07 18:26:51,ASD,0.88888,qqq
+32,18.0,male,name,,ASD_Subject_26.csv,2025-01-07 18:28:39,ASD,0.88888,qqq
+33,18.0,male,name,,ASD_Subject_40.csv,2025-01-07 18:30:06,ASD,0.88888,qqq
+34,18.0,male,name,,ASD_Subject_25.csv,2025-01-07 18:31:17,ASD,0.88888,qqq
+35,18.0,male,name,,ASD_Subject_18.csv,2025-01-07 18:34:57,ASD,0.88888,qqq
+36,18.0,male,name,sub-28741_ses-1_task-rest_run-1_bold.nii.gz,sub-28741_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-07 18:35:07,ASD,0.88888,qqq
+37,18.0,male,name,sub-28741_ses-1_task-rest_run-1_bold.nii.gz,sub-28741_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-07 18:36:35,ASD,0.88888,qqq
+38,18,male,name,None,ASD_Subject_04.csv,2025-01-07 20:22:00,ASD,0.88888,qqq

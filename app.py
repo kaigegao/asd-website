@@ -19,7 +19,7 @@ from nilearn import masking
 from nilearn.image import resample_to_img
 from nilearn.input_data import NiftiLabelsMasker
 
-
+import nibabel as nib
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 CORS(app)
@@ -184,17 +184,10 @@ def file_upload_destination():
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
 
-        # file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
-        # data = pd.read_csv(file_path, index_col=0)
-        # table_html = data.to_html(index=True)
-        # 返回包含case_id的JSON响应给前端
-        #return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
-        # return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
-
     # return jsonify({'case_id': data_with_case_id['caseId']}), 200
-    return "Data has been uploaded and processed successfully. Click 'View Results' to see the details."
+    return str(case_id)
 
 
 @app.route('/upload_case', methods=['GET', 'POST'])
@@ -341,7 +334,7 @@ def upload_image_files():
             flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
         # return jsonify({'case_id': data_with_case_id['caseId']}), 200
-        return "Data has been uploaded and processed successfully. Click 'View Results' to see the details."
+        return str(case_id)
     return render_template('image_upload.html')
 
 def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
@@ -409,7 +402,7 @@ def case_detail(case_id):
     file_path = app.config.get("case_save_file")
     df = pd.read_csv(file_path)
     result = df.loc[df['caseId'] == case_id, 'file']
-
+    result2 = df.loc[df['caseId'] == case_id, 'fmri.image']
     viewing_file = secure_filename(result.iloc[0])
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(result.iloc[0]))
 
@@ -421,16 +414,11 @@ def case_detail(case_id):
         flash(f'Error reading file : {str(e)}', 'danger')
         return redirect(url_for('view_cases'))
 
-    return render_template('case_detail.html',  case= result.iloc[0],table_html=table_html)
+    return render_template('case_detail.html', img=result2.iloc[0],case= result.iloc[0],table_html=table_html)
 
 
 @app.route('/get_column_data/<string:viewing_file>/<string:column_header>')
 def get_column_data(viewing_file , column_header):
-    # case_id = 0  # 这里假设只处理第一个案例，你可以根据需要调整
-    # if case_id < 0 or case_id >= len(cases):
-    #     return {'error': 'Invalid case ID'}, 400
-    #
-    # case = cases[case_id]
 
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
 
@@ -451,12 +439,6 @@ def get_column_data(viewing_file , column_header):
 
 @app.route('/predict/<string:viewing_file>', methods=['POST'])
 def predict_case(viewing_file):
-    # if case_id < 0 or case_id >= len(cases):
-    #     return jsonify({'error': '无效的病例ID'}), 400
-    #
-    # case = cases[case_id]
-    # file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(case['file']))
-
 
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
     try:
@@ -469,6 +451,31 @@ def predict_case(viewing_file):
         return jsonify({'diagnosis': diagnosis, 'risk': risk})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get_nii_data/<filename>')
+def get_nii_data(filename):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+
+        nii_img = nib.load(file_path)
+        data = nii_img.get_fdata()
+
+        # 发送整个数据到前端
+        data_list = data.tolist()
+        dimensions = list(data.shape)  # 保留原始数据的完整维度
+
+        # small_data_subset = data[:, :, 0, :10]
+        # dimensions = list(small_data_subset.shape)  # 保留原始数据的完整维度
+        # small_data_subset_list=small_data_subset.tolist()
+
+        return jsonify({'data': data_list, 'dimensions': dimensions})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 # Preprocess the data to fit the model input requirements
