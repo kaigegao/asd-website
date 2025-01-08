@@ -461,10 +461,10 @@ def delete_case(case_id):
             fmri_image_path = os.path.join(app.config.get("UPLOAD_FOLDER"), fmri_image)
             os.remove(fmri_image_path)
 
-        # # 删除file列对应的文件（如果存在）
+        # # # 删除file列对应的文件（如果存在）
         if pd.notna(file_value) :
-            file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), file_value)
-            os.remove(file_path)
+            csv_file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), file_value)
+            os.remove(csv_file_path)
         # 删除对应的行
         df_updated = df_final[df_final['caseId'] != case_id]
 
