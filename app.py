@@ -394,7 +394,7 @@ def view_cases():
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
-    return render_template('view_cases.html', records=records)
+    return render_template('view_cases.html', records=records, filtered_df=filtered_df)
 
 
 @app.route('/case_detail/<int:case_id>')
@@ -415,6 +415,54 @@ def case_detail(case_id):
         return redirect(url_for('view_cases'))
 
     return render_template('case_detail.html', img=result2.iloc[0],case= result.iloc[0],table_html=table_html)
+
+
+
+@app.route('/delete_case/<int:case_id>', methods=['POST'])
+def delete_case(case_id):
+    # 检查用户是否登录
+    username = session.get('username')
+    if not username:
+        flash('请先登录以继续操作.', 'warning')
+        return redirect(url_for('login'))
+
+    try:
+        file_path = app.config.get("case_save_file")
+        if not file_path or not os.path.exists(file_path):
+            raise FileNotFoundError("病例保存文件路径未配置或文件不存在.")
+
+        # 读取CSV文件
+        df_final = pd.read_csv(file_path)
+
+        # 确认当前医生有权删除该病例
+        if df_final[df_final['caseId'] == case_id]['doctor'].values[0] != username:
+            flash('您无权删除此病历.', 'danger')
+            return redirect(url_for('view_cases'))
+
+        row = df_final.loc[df_final['caseId'] == case_id].iloc[0]
+        fmri_image = row['fmri.image']
+        file_value = row['file']
+        # 删除fmri.image对应的文件（如果存在）
+        if pd.notna(fmri_image):
+            fmri_image_path = os.path.join(app.config.get("UPLOAD_FOLDER"), fmri_image)
+            os.remove(fmri_image_path)
+
+        # # 删除file列对应的文件（如果存在）
+        if pd.notna(file_value) :
+            file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), file_value)
+            os.remove(file_path)
+        # 删除对应的行
+        df_updated = df_final[df_final['caseId'] != case_id]
+
+        # 保存更新后的DataFrame回CSV文件
+        df_updated.to_csv(file_path, index=False)
+
+        flash('病历删除成功.', 'success')
+    except Exception as e:
+        app.logger.error(f'Error deleting case {case_id}: {str(e)}')
+        flash(f'删除病历时发生错误: {str(e)}', 'danger')
+
+    return redirect(url_for('view_cases'))
 
 
 @app.route('/get_column_data/<string:viewing_file>/<string:column_header>')
