@@ -36,10 +36,37 @@
             <li><a href="{{ url_for('logout') }}">注销</a></li>
         </ul>
     </nav>
-    {% for filename, table_html in records %}
-        <h2>{{ filename }}</h2>
-        {{ table_html|safe }}
-    {% endfor %}
+{% for filename, table_html in records %}
+    <h2>{{ filename }}</h2>
+    {% if filtered_df is defined and not filtered_df.empty %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    {% for col in filtered_df.columns %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
+                    <th>操作</th> <!-- 新增一列用于放置删除按钮 -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for index, row in filtered_df.iterrows() %}
+                    <tr>
+                        {% for col in filtered_df.columns %}
+                            <td>{% if col == 'caseId' %}<a href="{{ url_for('case_detail', case_id=row[col]) }}">{{ row[col] }}</a>{% else %}{{ row[col] }}{% endif %}</td>
+                        {% endfor %}
+                        <td>
+                            <form action="{{ url_for('delete_case', case_id=row['caseId']) }}" method="POST" onsubmit="return confirm('确定要删除此病历吗？')">
+                                <button type="submit" class="btn btn-danger">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>没有找到相关病历。</p>
+    {% endif %}
+{% endfor %}
 </body>
 {% endblock %}
 </html>
