@@ -26,16 +26,16 @@
 
 {% block content %}
 <body>
-    <h1>病历管理</h1>
-    <nav>
-        <ul>
-            <li><a href="{{ url_for('doctor_dashboard') }}">医生主页</a></li>
-            <li><a href="{{ url_for('upload_case') }}">上传病历</a></li>
-            <li><a href="{{ url_for('view_cases') }}">病历管理</a></li>
+<!--    <h1>病历管理</h1>-->
+<!--    <nav>-->
+<!--        <ul>-->
+<!--            <li><a href="{{ url_for('doctor_dashboard') }}">医生主页</a></li>-->
+<!--            <li><a href="{{ url_for('upload_case') }}">上传病历</a></li>-->
+<!--            <li><a href="{{ url_for('view_cases') }}">病历管理</a></li>-->
 
-            <li><a href="{{ url_for('logout') }}">注销</a></li>
-        </ul>
-    </nav>
+<!--            <li><a href="{{ url_for('logout') }}">注销</a></li>-->
+<!--        </ul>-->
+<!--    </nav>-->
 {% for filename, table_html in records %}
     <h2>{{ filename }}</h2>
     {% if filtered_df is defined and not filtered_df.empty %}
@@ -45,7 +45,7 @@
                     {% for col in filtered_df.columns %}
                         <th>{{ col }}</th>
                     {% endfor %}
-                    <th>操作</th> <!-- 新增一列用于放置删除按钮 -->
+                    <th>Opration</th> <!-- 新增一列用于放置删除按钮 -->
                 </tr>
             </thead>
             <tbody>
@@ -55,8 +55,8 @@
                             <td>{% if col == 'caseId' %}<a href="{{ url_for('case_detail', case_id=row[col]) }}">{{ row[col] }}</a>{% else %}{{ row[col] }}{% endif %}</td>
                         {% endfor %}
                         <td>
-                            <form action="{{ url_for('delete_case', case_id=row['caseId']) }}" method="POST" onsubmit="return confirm('确定要删除此病历吗？')">
-                                <button type="submit" class="btn btn-danger">删除</button>
+                            <form action="{{ url_for('delete_case', case_id=row['caseId']) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this medical record?？')">
+                                <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
                     </tr>
@@ -64,7 +64,7 @@
             </tbody>
         </table>
     {% else %}
-        <p>没有找到相关病历。</p>
+        <p>No relevant medical records found</p>
     {% endif %}
 {% endfor %}
 </body>

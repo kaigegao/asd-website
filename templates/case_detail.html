@@ -80,7 +80,17 @@
     <div class="scrollable-table">
         {{ table_html|safe }}
     </div>
-    <div class="other-plot-container" id="other-plot-container"></div>
+    <div id="brain-image-container" >
+        <iframe id="dynamic-iframe" width="100%" height="600px" frameborder="0"></iframe>
+        <div id="pagination-container">
+            <button id="prev">prev</button>
+            <input type="number" id="page-input" min="1" placeholder="index" />
+            <button id="next">next</button>
+            <ul id="pagination">
+                <!-- 分页按钮将在这里动态生成 -->
+            </ul>
+        </div>
+    </div>
     <div class="center-button">
         <input type="text" id="column-input" placeholder="Enter column header like #10">
         <button onclick="generatePlot()">Generate Plot</button>
@@ -91,21 +101,8 @@
     </div>
     <div id="prediction-result"></div>
 
-    <div id="brain-image-container" >
-<!--        <iframe src="../brain_image.html" width="100%" height="600px" frameborder="0"></iframe>-->
-        <iframe id="dynamic-iframe" width="100%" height="600px" frameborder="0"></iframe>
-        <div>test</div>
-        <button onclick="getBrainImage()">test</button>
-        <div id="pagination-container">
-            <button id="prev">prev</button>
-            <input type="number" id="page-input" min="1" placeholder="index" />
-            <button id="next">next</button>
-            <ul id="pagination">
-                <!-- 分页按钮将在这里动态生成 -->
-            </ul>
-        </div>
-</div>
-    </div>
+
+</body>
 
 
     <script>
@@ -113,13 +110,16 @@
         const itemsPerPage = 10;
         const totalPages = Math.ceil(totalItems / itemsPerPage);
         let currentPage = 1;
+        function getImgTitle() {
+            return document.getElementById('img-title').innerText;
+        }
 
         // 获取分页容器
-        const paginationContainer = document.getElementById('pagination');
          async function getBrainImage(index) {
+            const imgTitle = getImgTitle();
             try {
                 // 从Python接口获取HTML内容
-                const response = await fetch('/get_brain_image'+'?index='+ index);
+                const response = await fetch(`/get_brain_image?index=${index}&filename=${imgTitle}`);
                 const htmlContent = await response.text();
                  const iframe = document.getElementById('dynamic-iframe');
                 const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
@@ -195,9 +195,7 @@ document.getElementById('next').addEventListener('click', () => {
     }
 });
 
-        function getImgTitle() {
-            return document.getElementById('img-title').innerText;
-        }
+
 
         function getCaseTitle() {
             return document.getElementById('case-title').innerText;

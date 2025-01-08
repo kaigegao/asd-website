@@ -3,7 +3,7 @@ import datetime
 from datetime import datetime, timedelta
 import logging
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from werkzeug.utils import secure_filename
 import zipfile
 import csv
@@ -13,25 +13,19 @@ import numpy as np
 from models.MyModel import MyModel  # Ensure this import matches your directory structure
 from flask_cors import CORS
 
-from nilearn import datasets
+
 from nilearn.image import load_img
 from nilearn import masking
 from nilearn.image import resample_to_img
 from nilearn.input_data import NiftiLabelsMasker
-from flask import Flask, send_file
 from nilearn import plotting, datasets
 from nilearn import image
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-import plotly.io as pio
-import numpy as np
-import matplotlib.pyplot as plt
+import nibabel as nib
 import matplotlib
-import plotly.express as px
-from mpl_toolkits.mplot3d import Axes3D
+
 matplotlib.use("TkAgg")
 
-import nibabel as nib
+
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 CORS(app)
@@ -306,7 +300,7 @@ def upload_image_files():
             file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
 
             file.save(file_path)
-            # convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+            convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
             data = {
                 'age': request.form.get("age"),
                 'gender': request.form.get("gender"),
@@ -350,9 +344,9 @@ def upload_image_files():
     return render_template('image_upload.html')
 
 def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
-    print("11111111111")
+
     dataset = datasets.fetch_atlas_aal()
-    print("2222222222222")
+
     atlas_filename = dataset.maps
     labels = dataset.labels
     fMRIData = load_img(image_path)
@@ -459,12 +453,20 @@ def delete_case(case_id):
         # 删除fmri.image对应的文件（如果存在）
         if pd.notna(fmri_image):
             fmri_image_path = os.path.join(app.config.get("UPLOAD_FOLDER"), fmri_image)
-            os.remove(fmri_image_path)
+            if os.path.exists(fmri_image_path):
+                os.remove(fmri_image_path)
+                print(f"已删除文件: {fmri_image_path}")
+            else:
+                print(f"文件不存在: {fmri_image_path}")
 
         # # # 删除file列对应的文件（如果存在）
         if pd.notna(file_value) :
             csv_file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), file_value)
-            os.remove(csv_file_path)
+            if os.path.exists(csv_file_path):
+                os.remove(csv_file_path)
+                print(f"已删除文件: {csv_file_path}")
+            else:
+                print(f"文件不存在: {csv_file_path}")
         # 删除对应的行
         df_updated = df_final[df_final['caseId'] != case_id]
 
@@ -543,29 +545,16 @@ def get_nii_data(filename):
 def get_brain_image():
     # 加载示例图像
     brain_index = int(request.args.get('index'))
-    img = load_img("./sub-28741_ses-1_task-rest_run-1_bold.nii.gz")
+    print(brain_index)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], request.args.get('filename'))
+    img = load_img(file_path)
     first_volume = image.index_img(img, brain_index)
-    data = first_volume.dataobj
-
-    # theta = np.linspace(0, 2 * np.pi, 100)
-    # phi = np.linspace(0, np.pi, 100)
-    # theta, phi = np.meshgrid(theta, phi)
-    # x = np.sin(phi) * np.cos(theta)
-    # y = np.sin(phi) * np.sin(theta)
-    # z = np.cos(phi)
-    #
-    # # 创建 3D 图形
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.plot_surface(x, y, z, color='skyblue')
 
     # 创建交互式视图
     html_view = plotting.view_img(first_volume)
-    # fig_plotly = go.Figure(data=go.Scatter(x=x, y=y, z=z, mode='lines'))# 保存为HTML文件
-    # pio.write_html(fig, 'plot.html')
 
     html_view.save_as_html("brain_image.html")
-    # 返回HTML文件
+
     return send_file("brain_image.html", mimetype='text/html')
 
 
