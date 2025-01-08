@@ -39,6 +39,36 @@
             justify-content: center;
             margin-top: 20px;
         }
+        #pagination-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #pagination {
+            list-style: none;
+            padding: 0;
+            display: inline-block;
+        }
+
+        #pagination li {
+            display: inline;
+            margin-right: 5px;
+        }
+
+        #pagination li a {
+            text-decoration: none;
+            color: blue;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #pagination li a.active {
+            color: white;
+            background-color: blue;
+        }
+
+
     </style>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -61,8 +91,109 @@
     </div>
     <div id="prediction-result"></div>
 
-    <script>
+    <div id="brain-image-container" >
+<!--        <iframe src="../brain_image.html" width="100%" height="600px" frameborder="0"></iframe>-->
+        <iframe id="dynamic-iframe" width="100%" height="600px" frameborder="0"></iframe>
+        <div>test</div>
+        <button onclick="getBrainImage()">test</button>
+        <div id="pagination-container">
+            <button id="prev">prev</button>
+            <input type="number" id="page-input" min="1" placeholder="index" />
+            <button id="next">next</button>
+            <ul id="pagination">
+                <!-- 分页按钮将在这里动态生成 -->
+            </ul>
+        </div>
+</div>
+    </div>
 
+
+    <script>
+        const totalItems = 100;
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        let currentPage = 1;
+
+        // 获取分页容器
+        const paginationContainer = document.getElementById('pagination');
+         async function getBrainImage(index) {
+            try {
+                // 从Python接口获取HTML内容
+                const response = await fetch('/get_brain_image'+'?index='+ index);
+                const htmlContent = await response.text();
+                 const iframe = document.getElementById('dynamic-iframe');
+                const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+                // 将HTML内容注入到iframe中
+                iframeDocument.open();
+                iframeDocument.write(htmlContent);
+                iframeDocument.close();
+                console.log(htmlContent)
+                currentPage = index;
+                 updatePaginationUI();
+                // document.getElementById('dynamic-iframe').src = "../brain_image.html";
+                // // 将HTML内容嵌入到页面中
+                // document.getElementById('brain-image-container').innerHTML = htmlContent;
+            } catch (error) {
+                console.error('Error fetching brain image:', error);
+            }
+        }
+        generatePaginationButtons();
+        // 切换页面的函数
+function changePage(pageNumber) {
+    currentPage = pageNumber;
+    updatePaginationUI();
+    // 这里可以添加逻辑来更新页面内容
+    console.log(`当前页码: ${currentPage}`);
+}
+
+
+ function generatePaginationButtons() {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = i;
+        a.addEventListener('click', (event) => {
+            event.preventDefault();
+            getBrainImage(i);
+        });
+        li.appendChild(a);
+        pagination.appendChild(li);
+    }
+
+    updatePaginationUI();
+}
+
+function updatePaginationUI() {
+    const links = document.querySelectorAll('#pagination a');
+    links.forEach(link => {
+        link.classList.remove('active');
+    });
+    document.querySelector(`#pagination a:nth-child(${currentPage})`).classList.add('active');
+}
+document.getElementById('prev').addEventListener('click', () => {
+    if (currentPage > 1) {
+        getBrainImage(currentPage - 1);
+    }
+});
+        document.getElementById('page-input').addEventListener('change', (event) => {
+    const pageNumber = parseInt(event.target.value, 10);
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        getBrainImage(pageNumber);
+    } else {
+        alert('请输入有效的页码！');
+    }
+});
+
+document.getElementById('next').addEventListener('click', () => {
+    if (currentPage < totalPages) {
+        getBrainImage(currentPage + 1);
+    }
+});
 
         function getImgTitle() {
             return document.getElementById('img-title').innerText;

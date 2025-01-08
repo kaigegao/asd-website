@@ -18,6 +18,18 @@ from nilearn.image import load_img
 from nilearn import masking
 from nilearn.image import resample_to_img
 from nilearn.input_data import NiftiLabelsMasker
+from flask import Flask, send_file
+from nilearn import plotting, datasets
+from nilearn import image
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.io as pio
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import plotly.express as px
+from mpl_toolkits.mplot3d import Axes3D
+matplotlib.use("TkAgg")
 
 import nibabel as nib
 app = Flask(__name__)
@@ -294,7 +306,7 @@ def upload_image_files():
             file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
 
             file.save(file_path)
-            convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+            # convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
             data = {
                 'age': request.form.get("age"),
                 'gender': request.form.get("gender"),
@@ -338,7 +350,9 @@ def upload_image_files():
     return render_template('image_upload.html')
 
 def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
+    print("11111111111")
     dataset = datasets.fetch_atlas_aal()
+    print("2222222222222")
     atlas_filename = dataset.maps
     labels = dataset.labels
     fMRIData = load_img(image_path)
@@ -476,6 +490,35 @@ def get_nii_data(filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/get_brain_image', methods=['GET'])
+def get_brain_image():
+    # 加载示例图像
+    brain_index = int(request.args.get('index'))
+    img = load_img("./sub-28741_ses-1_task-rest_run-1_bold.nii.gz")
+    first_volume = image.index_img(img, brain_index)
+    data = first_volume.dataobj
+
+    # theta = np.linspace(0, 2 * np.pi, 100)
+    # phi = np.linspace(0, np.pi, 100)
+    # theta, phi = np.meshgrid(theta, phi)
+    # x = np.sin(phi) * np.cos(theta)
+    # y = np.sin(phi) * np.sin(theta)
+    # z = np.cos(phi)
+    #
+    # # 创建 3D 图形
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.plot_surface(x, y, z, color='skyblue')
+
+    # 创建交互式视图
+    html_view = plotting.view_img(first_volume)
+    # fig_plotly = go.Figure(data=go.Scatter(x=x, y=y, z=z, mode='lines'))# 保存为HTML文件
+    # pio.write_html(fig, 'plot.html')
+
+    html_view.save_as_html("brain_image.html")
+    # 返回HTML文件
+    return send_file("brain_image.html", mimetype='text/html')
 
 
 # Preprocess the data to fit the model input requirements
