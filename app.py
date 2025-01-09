@@ -405,6 +405,27 @@ def view_cases():
 
     return render_template('view_cases.html', records=records, filtered_df=filtered_df)
 
+@app.route('/api/query_cases', methods=['POST'])
+def query_cases():
+    # 获取参数处理筛选项逻辑
+    filter = request.get_json()
+
+    records = []
+    try:
+        file_path = app.config.get("case_save_file")
+
+        df_final = pd.read_csv(file_path)
+        filtered_df = df_final[df_final['doctor'] == session.get('username')]
+
+        # camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
+        #     'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
+        # })
+        records = filtered_df.dropna().to_dict('records')
+    except Exception as e:
+        {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}
+
+    return {'success': True, 'result': {'list': records,'total': len(records)}}
+
 
 @app.route('/case_detail/<int:case_id>')
 def case_detail(case_id):
@@ -665,93 +686,68 @@ def upload_video():
     return render_template('upload_video.html')
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        role = request.form.get('role')
-        hospital = request.form.get('hospital') if role == 'doctor' else None
+    data = request.get_json()
+    print(data)
+    username = data['username']
+    email = data['email']
+    password = data['password']
+    role = data['role']
+    hospital = data['hospital'] if role == 'doctor' else None
 
-        # 简单的验证：检查用户名是否已存在
-        if any(user['username'] == username for user in users):
-            flash('用户名已存在，请选择其他用户名。')
-            return redirect(url_for('register'))
+    # 简单的验证：检查用户名是否已存在
+    if any(user['username'] == username for user in users):
+        return {'success': False, 'errorMsg': '用户名已存在，请选择其他用户名。'}, 200
 
-        # 将用户数据存储到列表中
-        data = {
-            'username': username,
-            'email': email,
-            'password': password,
-            'role': role,
-            'hospital': hospital,
-            'registration_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        users.append(data)
-        try:
-            df = pd.DataFrame([data])
-            df['registration_date'] = pd.to_datetime(df['registration_date']).dt.strftime('%Y-%m-%d %H:%M:%S')
-            # print(df)
-            file_path = app.config.get("user_info_file")
-
-            raw_df = pd.read_csv(file_path)
-            if df['email'].iloc[0] in raw_df['email'].values or df['username'].iloc[0] in raw_df['username'].values :
-                print(f"Email {email} already exists.")
-            else:
-                # 将新的DataFrame追加到读取的DataFrame中
-                df.to_csv(file_path, mode='a', header=False, index=False)
-            flash('注册成功！')
-            return redirect(url_for('index'))
-        except Exception as e:
-            print(str(e))
-    return render_template('register.html')
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-
+    # 将用户数据存储到列表中
+    data = {
+        'username': username,
+        'email': email,
+        'password': password,
+        'role': role,
+        'hospital': hospital,
+        'registration_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    users.append(data)
+    try:
+        df = pd.DataFrame([data])
+        df['registration_date'] = pd.to_datetime(df['registration_date']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        # print(df)
         file_path = app.config.get("user_info_file")
+
         raw_df = pd.read_csv(file_path)
-        if raw_df['username'].eq(username).any():
-            # 用户名存在，进一步判断密码是否一致
-            df = raw_df[ raw_df['username'] == username].to_dict('records')[0]
-            if (df['username'] == username) and (str(df['password']) == password):
-                print(f"用户 {username} 存在，并且密码一致。")
-                session['username'] = username
-                session['role'] = df['role']
-                flash('登录成功！')
-                if df['role'] == 'doctor':
-                    return redirect(url_for('doctor_dashboard'))
-                else:
-                    return redirect(url_for('index'))
-            else:
-                print(f"用户 {username} 存在，但密码不一致。")
-                flash('用户名或密码错误，请重试。')
-                return redirect(url_for('login'))
+        if df['email'].iloc[0] in raw_df['email'].values or df['username'].iloc[0] in raw_df['username'].values :
+            print(f"Email {email} already exists.")
         else:
-            print(f"用户 {username} 不存在。")
-            flash('用户名或密码错误，请重试。')
-            return redirect(url_for('login'))
-        # 验证用户是否存在且密码正确
-        user = next((user for user in users if user['username'] == username and user['password'] == password), None)
-        if user:
-            session['username'] = user['username']
-            session['role'] = user['role']
-            flash('登录成功！')
-            if user['role'] == 'doctor':
-                return redirect(url_for('doctor_dashboard'))
+            # 将新的DataFrame追加到读取的DataFrame中
+            df.to_csv(file_path, mode='a', header=False, index=False)
+        return {'success': True}, 200
+    except Exception as e:
+        print(str(e))
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    print(data)
+    file_path = app.config.get("user_info_file")
+    raw_df = pd.read_csv(file_path)
+    if raw_df['username'].eq(data['username']).any():
+        # 用户名存在，进一步判断密码是否一致
+        df = raw_df[ raw_df['username'] == data['username']].to_dict('records')[0]
+        if (df['username'] == data['username']) and (str(df['password']) == data['password']):
+            print(f"用户 {data['username']} 存在，并且密码一致。")
+            session['username'] = data['username']
+            session['role'] = df['role']
+            if df['role'] == 'doctor':
+                return {'success': True}, 200
             else:
-                return redirect(url_for('index'))
+                return {'success': False, 'errorMsg': "不是医生角色，暂时无法登录"}, 200
         else:
-            flash('用户名或密码错误，请重试。')
-            return redirect(url_for('login'))
-
-    return render_template('login.html')
-
+            return {'success': False, 'errorMsg': f"用户 {data['username']} 存在，但密码不一致。"}, 200
+    else:
+        return {'success': False, 'errorMsg': '用户名或密码错误，请重试。'}, 200
 
 @app.route('/logout')
 def logout():

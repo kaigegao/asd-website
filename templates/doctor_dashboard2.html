@@ -1,87 +1,280 @@
 <!-- templates/doctor_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 20px;
-        }
-        .sidebar {
-            height: 100%;
-            width: 200px;
-            position: fixed;
-            z-index: 1;
-            top: 0;
-            left: 0;
-            background-color: #111;
-            overflow-x: hidden;
-            padding-top: 20px;
-          }
-        .sidebar a {
-            padding: 6px 8px 6px 16px;
-            text-decoration: none;
-            font-size: 18px;
-            color: #818181;
-            display: block;
-          }
-        .sidebar a:hover {
-            color: #f1f1f1;
-          }
-        .main-content {
-            margin-left: 200px; /* Same as the width of the sidebar */
-            padding: 0px 10px;
-          }
-        .stats {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .stats h2 {
-            margin-top: 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="sidebar">
-        <a href="/">Homepage</a>
-        <a href="/upload_case">Upload Fmri Csv</a>
-        <a href="/fmri_image_upload">Upload Fmri Image</a>
-        <a href="/bulk_upload">Bulk Upload Cases</a>
-        <a href="{{url_for('view_cases')}}">Case Management</a>
-        <a href="/change_password">Password Change</a>
-        <a href="/logout">Lou out</a>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Doctor Dashboard</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script
+			crossorigin
+			src="https://unpkg.com/react@17/umd/react.development.js"
+		></script>
+		<script
+			crossorigin
+			src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+		></script>
+		<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.16/antd.min.css"
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		/>
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.16/antd.min.js"
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		></script>
+		<link
+			rel="stylesheet"
+			href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.css"
+		/>
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				background: #fafafa;
+			}
 
-    </div>
+			html {
+				width: 100vw;
+				height: 100vh;
+			}
 
-    <div class="main-content" id="content">
-        <div class="stats">
-            <h2>WELCOME , {{ session['username'] }}</h2>
-            <p>Total number of uploaded cases : {{ session["total_cases"] }}</p>
-            <p>Number of new cases this week: {{ session["weekly_new_cases"] }}</p>
-        </div>
-        {% block content %}
-        {% endblock %}
-    </div>
-    <script>
-        function loadPage(page) {
-            // 使用 AJAX 加载页面内容
-            var xhttp = new XMLHttpRequest();
-            fetch()
-            xhttp.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById("content").innerHTML = this.responseText;
-                }
-            };
-            xhttp.open("GET", page, true);
-            xhttp.send();
-        }
-    </script>
-</body>
+			#doctor_dashboard_root {
+				height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="doctor_dashboard_root"></div>
+	</body>
+	<script type="text/babel">
+		const UploadCase = () => {
+			return <div>upload_case</div>;
+		};
+	</script>
+	<script type="text/babel">
+		const FmriImageUpload = () => {
+			return <div>fmri_image_upload</div>;
+		};
+	</script>
+	<script type="text/babel">
+		const ViewCases = () => {
+			const [loading, setLoading] = React.useState(false);
+			const [result, setResult] = React.useState({ list: [], total: 0 });
+			const pagination = {
+				current: 1,
+				pageSize: 10,
+				total: result.total
+			};
+
+			const onFinish = async (values) => {
+				try {
+					setLoading(true);
+					const res = await fetch('/api/query_cases', {
+						method: 'POST',
+						headers: {
+							'content-type': 'application/json'
+						},
+						body: JSON.stringify(values || {})
+					});
+
+					if (res.ok) {
+						const { success, result, errorMsg } = await res.json();
+						if (success && result) {
+							setResult(result);
+						} else {
+							antd.message.error(errorMsg);
+						}
+					}
+				} catch (error) {
+					antd.message.error(error.toString());
+				} finally {
+					setLoading(false);
+				}
+			};
+
+			const onFinishFailed = (errorInfo) => {
+				console.log('Failed:', errorInfo);
+			};
+
+			return (
+				<div>
+					<antd.Form
+						className="mb-4"
+						name="basic"
+						layout="inline"
+						onFinish={onFinish}
+						onFinishFailed={onFinishFailed}
+						autoComplete="off"
+					>
+						<antd.Form.Item label="Case Id" name="caseId">
+							<antd.Input placeholder="请输入Case Id" />
+						</antd.Form.Item>
+						<antd.Form.Item label="Name" name="name">
+							<antd.Input placeholder="请输入患者姓名" />
+						</antd.Form.Item>
+						<antd.Form.Item>
+							<antd.Button type="primary" htmlType="submit">
+								Submit
+							</antd.Button>
+						</antd.Form.Item>
+					</antd.Form>
+					<antd.Table
+						rowKey="caseId"
+						loading={loading}
+						bordered
+						columns={[
+							{
+								title: 'Case Id',
+								dataIndex: 'caseId',
+								key: 'caseId',
+								render: (text) => <a>{text}</a>
+							},
+							{
+								title: 'Age',
+								dataIndex: 'age',
+								key: 'age'
+							},
+							{
+								title: 'Gender',
+								dataIndex: 'gender',
+								key: 'gender'
+							},
+							{
+								title: 'Name',
+								dataIndex: 'name',
+								key: 'name'
+							},
+							{
+								title: 'Fmri Image',
+								dataIndex: 'fmriImage',
+								key: 'fmriImage'
+							},
+							{
+								title: 'File',
+								dataIndex: 'file',
+								key: 'file'
+							},
+							{
+								title: 'Upload Date',
+								dataIndex: 'uploadDate',
+								key: 'uploadDate'
+							},
+							{
+								title: 'Diagnosis',
+								dataIndex: 'diagnosis',
+								key: 'diagnosis'
+							},
+							{
+								title: 'Risk',
+								dataIndex: 'risk',
+								key: 'risk'
+							},
+							{
+								title: 'Doctor',
+								dataIndex: 'doctor',
+								key: 'doctor'
+							},
+							{
+								title: 'Operation',
+								key: 'operation',
+								render: (_, record) => (
+									<div>
+										<antd.Button type="link" size="small">
+											view
+										</antd.Button>
+										<antd.Button
+											type="link"
+											size="small"
+											danger
+										>
+											delete
+										</antd.Button>
+									</div>
+								)
+							}
+						]}
+						dataSource={result.list}
+						pagination={pagination}
+					/>
+				</div>
+			);
+		};
+	</script>
+	<script type="text/babel">
+		function getItem(label, key, icon, children, type) {
+			return {
+				key,
+				icon,
+				children,
+				label,
+				type
+			};
+		}
+		const App = () => {
+			const [currentKey, setCurrentKey] = React.useState(
+				window.location.hash.slice(1) || 'upload_case'
+			);
+			const getRenderContent = () => {
+				switch (currentKey) {
+					case 'upload_case':
+						return <UploadCase />;
+					case 'fmri_image_upload':
+						return <FmriImageUpload />;
+					case 'view_cases':
+						return <ViewCases />;
+				}
+			};
+
+			const onClick = (e) => {
+				window.location.hash = e.key;
+				setCurrentKey(e.key);
+			};
+
+			return (
+				<div className="flex h-full">
+					<aside className="flex flex-col h-full w-[256px] relative">
+						<div className="bg-[#001529] text-white py-6 text-2xl font-bold text-center">
+							Welcome, xxx
+						</div>
+						<antd.Menu
+							onClick={onClick}
+							className="flex-1 text-base"
+							mode="inline"
+							theme="dark"
+							defaultSelectedKeys={[currentKey]}
+							items={[
+								getItem('Upload Fmri Csv', 'upload_case', null),
+								getItem(
+									'Upload Fmri Image',
+									'fmri_image_upload',
+									null
+								),
+								getItem('Case Management', 'view_cases', null)
+							]}
+						/>
+						<antd.Button
+							className="absolute bottom-2 left-2 text-white hover:text-gray-400"
+							type="text"
+							icon={<i class="fa fa-sign-out mr-1"></i>}
+							onClick={() => {
+								window.location.href = '/';
+							}}
+						>
+							Log out
+						</antd.Button>
+					</aside>
+					<main className="flex-1 p-4">{getRenderContent()}</main>
+				</div>
+			);
+		};
+		ReactDOM.render(
+			<App />,
+			document.querySelector('#doctor_dashboard_root')
+		);
+	</script>
 </html>
