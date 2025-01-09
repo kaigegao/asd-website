@@ -58,17 +58,17 @@
        <h1 style="text-align: center;">CSV Upload Files</h1>
         <form method="post" enctype="multipart/form-data" id="case-form">
             <div class="form-group">
-                <label for="title">年龄:</label>
+                <label for="title">Age:</label>
                  <input type="text" id="age" name="age" value="18" required><br><br>
             </div>
 
             <div class="form-group">
-                <label for="title">性别:</label>
+                <label for="title">Sex:</label>
                  <input type="text" id="gender" name="gender" value="male" required><br><br>
             </div>
 
             <div class="form-group">
-               <label for="title">姓名:</label>
+               <label for="title">Name:</label>
                 <input type="text" id="name" name="name" value="name" required><br><br>
             </div>
 
@@ -91,7 +91,7 @@
         maxFilesize: 2, // 最大文件大小（单位：MB）
         acceptedFiles: ".csv", // 接受的文件类型
         addRemoveLinks: true, // 显示删除链接
-        dictDefaultMessage: "拖拽文件到这里上传，或点击选择文件...",
+        dictDefaultMessage: "Drag CSV here to upload, or click Choose CSV...",
         autoProcessQueue: false, // 禁用自动上传// 默认提示信息
         init: function () {
             this.on("success", function(file, response) {
@@ -121,7 +121,7 @@
     //     console.log("Server response:", response);
     //     alert(response)
             console.log("Server response:", response);
-            if (confirm("文件上传完成，是否前往文件详情？")) {
+            if (confirm("The file has been uploaded. Do you want to go to the file details?")) {
                 console.log("gkgkgkgkgkgkgkggk:", response);
                 window.location.href = `/case_detail/${response}`;
         }

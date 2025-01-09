@@ -50,21 +50,21 @@
 </head>
 <body>
     <div class="sidebar">
-        <a href="/">主页</a>
-        <a href="/upload_case">Upload fmri csv</a>
-        <a href="/fmri_image_upload">Upload fmri image</a>
-        <a href="/bulk_upload">批量上传病例</a>
-        <a href="{{url_for('view_cases')}}">病例管理</a>
-        <a href="/change_password">修改密码</a>
-        <a href="/logout">注销</a>
+        <a href="/">Homepage</a>
+        <a href="/upload_case">Upload Fmri Csv</a>
+        <a href="/fmri_image_upload">Upload Fmri Image</a>
+        <a href="/bulk_upload">Bulk Upload Cases</a>
+        <a href="{{url_for('view_cases')}}">Case Management</a>
+        <a href="/change_password">Password Change</a>
+        <a href="/logout">Lou out</a>
 
     </div>
 
     <div class="main-content" id="content">
         <div class="stats">
-            <h2>欢迎, {{ session['username'] }}</h2>
-            <p>总上传病例数量: {{ session["total_cases"] }}</p>
-            <p>本周新增病例数量: {{ session["weekly_new_cases"] }}</p>
+            <h2>WELCOME , {{ session['username'] }}</h2>
+            <p>Total number of uploaded cases : {{ session["total_cases"] }}</p>
+            <p>Number of new cases this week: {{ session["weekly_new_cases"] }}</p>
         </div>
         {% block content %}
         {% endblock %}

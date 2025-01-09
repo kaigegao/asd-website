@@ -3,7 +3,7 @@ import datetime
 from datetime import datetime, timedelta
 import logging
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from werkzeug.utils import secure_filename
 import zipfile
 import csv
@@ -13,13 +13,19 @@ import numpy as np
 from models.MyModel import MyModel  # Ensure this import matches your directory structure
 from flask_cors import CORS
 
-from nilearn import datasets
+
 from nilearn.image import load_img
 from nilearn import masking
 from nilearn.image import resample_to_img
 from nilearn.input_data import NiftiLabelsMasker
-
+from nilearn import plotting, datasets
+from nilearn import image
 import nibabel as nib
+import matplotlib
+
+matplotlib.use("TkAgg")
+
+
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 CORS(app)
@@ -338,7 +344,9 @@ def upload_image_files():
     return render_template('image_upload.html')
 
 def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
+
     dataset = datasets.fetch_atlas_aal()
+
     atlas_filename = dataset.maps
     labels = dataset.labels
     fMRIData = load_img(image_path)
@@ -385,12 +393,13 @@ def view_cases():
         file_path = app.config.get("case_save_file")
 
         df_final = pd.read_csv(file_path)
+        df_final.fillna('——', inplace=True)
         filtered_df = df_final[df_final['doctor'] == session.get('username')]
 
         camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
             'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
         })
-        records.append(("病历信息", camel))
+        records.append(("Medical cases information", camel))
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
@@ -445,12 +454,20 @@ def delete_case(case_id):
         # 删除fmri.image对应的文件（如果存在）
         if pd.notna(fmri_image):
             fmri_image_path = os.path.join(app.config.get("UPLOAD_FOLDER"), fmri_image)
-            os.remove(fmri_image_path)
+            if os.path.exists(fmri_image_path):
+                os.remove(fmri_image_path)
+                print(f"已删除文件: {fmri_image_path}")
+            else:
+                print(f"文件不存在: {fmri_image_path}")
 
         # # # 删除file列对应的文件（如果存在）
         if pd.notna(file_value) :
             csv_file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), file_value)
-            os.remove(csv_file_path)
+            if os.path.exists(csv_file_path):
+                os.remove(csv_file_path)
+                print(f"已删除文件: {csv_file_path}")
+            else:
+                print(f"文件不存在: {csv_file_path}")
         # 删除对应的行
         df_updated = df_final[df_final['caseId'] != case_id]
 
@@ -524,6 +541,22 @@ def get_nii_data(filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/get_brain_image', methods=['GET'])
+def get_brain_image():
+    # 加载示例图像
+    brain_index = int(request.args.get('index'))
+    print(brain_index)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], request.args.get('filename'))
+    img = load_img(file_path)
+    first_volume = image.index_img(img, brain_index)
+
+    # 创建交互式视图
+    html_view = plotting.view_img(first_volume)
+
+    html_view.save_as_html("brain_image.html")
+
+    return send_file("brain_image.html", mimetype='text/html')
 
 
 # Preprocess the data to fit the model input requirements
