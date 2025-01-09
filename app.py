@@ -393,12 +393,13 @@ def view_cases():
         file_path = app.config.get("case_save_file")
 
         df_final = pd.read_csv(file_path)
+        df_final.fillna('——', inplace=True)
         filtered_df = df_final[df_final['doctor'] == session.get('username')]
 
         camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
             'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
         })
-        records.append(("病历信息", camel))
+        records.append(("Medical cases information", camel))
     except Exception as e:
         flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
 
