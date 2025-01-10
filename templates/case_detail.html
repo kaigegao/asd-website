@@ -100,14 +100,18 @@
         <button class="center-button" onclick="makePrediction()">Predict</button>
     </div>
     <div id="prediction-result"></div>
+    <div>
+        <label for="page-slider">Page:</label>
+        <input type="range" id="page-slider" min="1" max="10" value="1" step="1">
+    </div>
 
 
 </body>
 
 
     <script>
-        const totalItems = 100;
-        const itemsPerPage = 10;
+        const totalItems = 10;
+        const itemsPerPage = 1;
         const totalPages = Math.ceil(totalItems / itemsPerPage);
         let currentPage = 1;
         function getImgTitle() {
@@ -345,6 +349,28 @@ document.getElementById('next').addEventListener('click', () => {
         document.addEventListener('DOMContentLoaded', () => {
             loadNiiData();
         });
+
+
+// 处理滑块值变化的事件
+        document.getElementById('page-slider').addEventListener('input', (event) => {
+            const pageNumber = parseInt(event.target.value, 10);
+            if (pageNumber !== currentPage) {
+                getBrainImage(pageNumber);
+            }
+        });
+
+        // 更新滑块的最大值和当前值
+        function updateSlider() {
+            const slider = document.getElementById('page-slider');
+            slider.max = totalPages;
+            slider.value = currentPage;
+        }
+
+
+        // 更新分页 UI，这里主要是更新滑块
+        function updatePaginationUI() {
+            updateSlider();
+        }
 
     </script>
 </body>
