@@ -420,7 +420,7 @@ def query_cases():
         # camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
         #     'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
         # })
-        records = filtered_df.dropna().to_dict('records')
+        records = df_final.dropna().to_dict('records')
     except Exception as e:
         {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}
 
@@ -502,25 +502,37 @@ def delete_case(case_id):
 
     return redirect(url_for('view_cases'))
 
+@app.route('/api/query_csv_data', methods=['POST'])
+def query_csv_data():
+    data = request.get_json()
+    records = []
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['filename'])
+        df_final = pd.read_csv(file_path)
+        records = df_final.dropna().to_dict('records')
+    except Exception as e:
+        {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}
 
-@app.route('/get_column_data/<string:viewing_file>/<string:column_header>')
-def get_column_data(viewing_file , column_header):
+    return {'success': True, 'result': {'list': records,'total': len(records)}}
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
+@app.route('/api/get_column_data', methods=['POST'])
+def get_column_data():
+    data = request.get_json()
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['viewing_file'])
 
     try:
         # 读取文件内容，将第一列设置为索引
-        data = pd.read_csv(file_path, index_col=0)
+        df_final = pd.read_csv(file_path, index_col=0)
 
-        if column_header not in data.columns:
-            return {'error': f'Column {column_header} not found'}, 400
+        if data['column_header'] not in df_final.columns:
+            return {'success': False, 'errorMsg': f'Column {data["column_header"]} not found'}, 500
 
-        index = data.index.tolist()
-        values = data[column_header].tolist()
+        index = df_final.index.tolist()
+        values = df_final[data['column_header']].tolist()
 
-        return {'index': index, 'values': values}
+        return {'success': True, 'result': {'index': index, 'values': values}}
     except Exception as e:
-        return {'error': str(e)}, 500
+        return {'success': False, 'errorMsg': str(e)}, 500
 
 
 @app.route('/predict/<string:viewing_file>', methods=['POST'])
@@ -730,7 +742,6 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    print(data)
     file_path = app.config.get("user_info_file")
     raw_df = pd.read_csv(file_path)
     if raw_df['username'].eq(data['username']).any():

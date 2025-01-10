@@ -30,6 +30,7 @@
 			rel="stylesheet"
 			href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.css"
 		/>
+		<script src="/static/assets/js/plotly-latest.min.js"></script>
 		<style>
 			html,
 			body {
@@ -62,13 +63,130 @@
 		};
 	</script>
 	<script type="text/babel">
+		const CsvData = ({ filename }) => {
+			const [loading, setLoading] = React.useState(false);
+			const [result, setResult] = React.useState({ list: [], total: 0 });
+			const [selectedColumn, setSelectedColumn] = React.useState('');
+			const columns =
+				Object.keys(result.list[0] || {}).map((key) => ({
+					title: key,
+					dataIndex: key,
+					width: 150,
+					key
+				})) || [];
+			const scroll = { x: columns.length * 150, y: 300 };
+			const pagination = {
+				current: 1,
+				pageSize: 10,
+				total: result.total,
+				position: ['none', 'none']
+			};
+
+			React.useEffect(() => {
+				fetch('/api/query_csv_data', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json'
+					},
+					body: JSON.stringify({ filename })
+				})
+					.then((data) => data.json())
+					.then(({ result }) => {
+						setResult(result);
+						setSelectedColumn(Object.keys(result.list[0] || {})[0]);
+					});
+			}, []);
+
+			React.useEffect(() => {
+				const plotContainer = document.getElementById('plot-container');
+
+				if (selectedColumn) {
+					fetch('/api/get_column_data', {
+						method: 'POST',
+						headers: {
+							'content-type': 'application/json'
+						},
+						body: JSON.stringify({
+							viewing_file: filename,
+							column_header: selectedColumn
+						})
+					})
+						.then((response) => response.json())
+						.then((data) => {
+							if (data.errorMsg) {
+								alert(data.errorMsg);
+								return;
+							}
+
+							const trace = {
+								x: data.result.index,
+								y: data.result.values,
+								mode: 'lines+markers',
+								type: 'scatter'
+							};
+
+							const layout = {
+								title: `Data for Column ${selectedColumn}`,
+								xaxis: { title: 'Index' },
+								yaxis: { title: 'Value' }
+							};
+
+							Plotly.newPlot(plotContainer, [trace], layout);
+						})
+						.catch((error) => console.error('Error:', error));
+				}
+
+				return () => {
+					plotContainer && Plotly.purge(plotContainer);
+				};
+			}, [selectedColumn]);
+
+			return (
+				<div className="w-full">
+					<antd.Table
+						className="w-full mt-4"
+						loading={loading}
+						bordered
+						columns={columns || []}
+						dataSource={result.list || []}
+						scroll={scroll}
+						pagination={pagination}
+					/>
+					<div className="relative mt-4">
+						<antd.Select
+							placeholder="请选择"
+							className="w-[200px] absolute top-[26px] left-0 z-[1000]"
+							value={selectedColumn}
+							onChange={setSelectedColumn}
+							options={columns.map(({ key }) => ({
+								label: key,
+								value: key
+							}))}
+						/>
+						<div id="plot-container"></div>
+					</div>
+				</div>
+			);
+		};
 		const ViewCases = () => {
 			const [loading, setLoading] = React.useState(false);
 			const [result, setResult] = React.useState({ list: [], total: 0 });
+			const [open, setOpen] = React.useState(false);
+			const [rowData, setRowData] = React.useState({});
+			const valueStyle1 = { color: '#3f8600' };
+			const valueStyle2 = { color: '#cf1322' };
 			const pagination = {
 				current: 1,
 				pageSize: 10,
 				total: result.total
+			};
+			const showDrawer = () => {
+				setOpen(true);
+			};
+
+			const onClose = () => {
+				setOpen(false);
+				setRowData({});
 			};
 
 			const onFinish = async (values) => {
@@ -184,7 +302,14 @@
 								key: 'operation',
 								render: (_, record) => (
 									<div>
-										<antd.Button type="link" size="small">
+										<antd.Button
+											type="link"
+											size="small"
+											onClick={async () => {
+												setRowData(record);
+												showDrawer();
+											}}
+										>
 											view
 										</antd.Button>
 										<antd.Button
@@ -201,11 +326,98 @@
 						dataSource={result.list}
 						pagination={pagination}
 					/>
+					<antd.Drawer
+						title="View detail"
+						placement="right"
+						width="70vw"
+						onClose={onClose}
+						open={open}
+					>
+						<div className="space-y-8">
+							<div>
+								<div className="flex gap-x-2 font-bold text-lg">
+									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+									<div>Info</div>
+								</div>
+								<antd.Descriptions
+									className="mt-4"
+									bordered
+									column={4}
+									size="small"
+								>
+									<antd.Descriptions.Item label="Case Id">
+										{rowData.caseId}
+									</antd.Descriptions.Item>
+									<antd.Descriptions.Item label="Age">
+										{rowData.age}
+									</antd.Descriptions.Item>
+									<antd.Descriptions.Item label="Gender">
+										{rowData.gender}
+									</antd.Descriptions.Item>
+									<antd.Descriptions.Item label="Name">
+										{rowData.name}
+									</antd.Descriptions.Item>
+									<antd.Descriptions.Item
+										label="Fmri Image"
+										span={2}
+									>
+										{rowData.fmriImage}
+									</antd.Descriptions.Item>
+									<antd.Descriptions.Item
+										label="File"
+										span={2}
+									>
+										{rowData.file}
+									</antd.Descriptions.Item>
+								</antd.Descriptions>
+							</div>
+							<div>
+								<div className="flex gap-x-2 font-bold text-lg">
+									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+									<div>Predict</div>
+								</div>
+								<div className="flex mt-2">
+									<antd.Statistic
+										title="Diagnosis"
+										value={rowData.diagnosis}
+										valueStyle={valueStyle1}
+										className="flex-1"
+									/>
+									<antd.Statistic
+										title="Risk"
+										value={rowData.risk}
+										precision={2}
+										valueStyle={valueStyle2}
+										suffix="%"
+										className="flex-1"
+									/>
+								</div>
+							</div>
+							<div>
+								<div className="flex gap-x-2 font-bold text-lg">
+									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+									<div>CSV Data</div>
+								</div>
+								<CsvData
+									key={rowData.caseId}
+									filename={rowData.file}
+								/>
+							</div>
+							<div>
+								<div className="flex gap-x-2 font-bold text-lg">
+									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+									<div>Image Data</div>
+								</div>
+								<div className="flex mt-2"></div>
+							</div>
+						</div>
+					</antd.Drawer>
 				</div>
 			);
 		};
 	</script>
 	<script type="text/babel">
+		const username = "{{ session['username'] }}";
 		function getItem(label, key, icon, children, type) {
 			return {
 				key,
@@ -239,7 +451,7 @@
 				<div className="flex h-full">
 					<aside className="flex flex-col h-full w-[256px] relative">
 						<div className="bg-[#001529] text-white py-6 text-2xl font-bold text-center">
-							Welcome, xxx
+							Welcome, {username}
 						</div>
 						<antd.Menu
 							onClick={onClick}
