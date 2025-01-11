@@ -54,7 +54,7 @@
 	</body>
 	<script type="text/babel">
 		const UploadCase = () => {
-			return <div>upload_case</div>;
+			return <div>On this website, you can upload CSV and NII.GZ files to manage your cases</div>;
 		};
 	</script>
 	<script type="text/babel">
@@ -400,8 +400,8 @@
 						// handleQuery()
 						console.log(caseId);
 						const { destroy } = antd.Modal.confirm({
-							title: '上传成功',
-							content: `${fileList[0].name}文件上传成功，是否立即查看？`,
+							title: 'Upload successful',
+							content: `${fileList[0].name}File uploaded successfully, Do you want to view detail now？`,
 							onOk: async () => {
 								handleOk();
 								destroy();
@@ -437,10 +437,10 @@
 							autoComplete="off"
 						>
 							<antd.Form.Item label="Case Id" name="caseId">
-								<antd.Input placeholder="请输入Case Id" />
+								<antd.Input placeholder="Please Enter Case Id" />
 							</antd.Form.Item>
 							<antd.Form.Item label="Name" name="name">
-								<antd.Input placeholder="请输入患者姓名" />
+								<antd.Input placeholder="Please Enter Name" />
 							</antd.Form.Item>
 							<antd.Form.Item>
 								<antd.Button type="primary" htmlType="submit">
@@ -737,7 +737,8 @@
 							theme="dark"
 							defaultSelectedKeys={[currentKey]}
 							items={[
-								getItem('Case Management', 'view_cases', null)
+								getItem('Case Management', 'view_cases', null),
+								getItem('Logout', 'logout', null)
 							]}
 						/>
 					</aside>

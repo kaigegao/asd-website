@@ -433,7 +433,7 @@ def query_cases():
         df_final = pd.read_csv(file_path)
         df_final = df_final.applymap(lambda x: None if pd.isna(x) else x)
         filtered_df = df_final[df_final['doctor'] == session.get('username')]
-        records = df_final.to_dict(orient='records')
+        records = filtered_df.to_dict(orient='records')
     except Exception as e:
         return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
 

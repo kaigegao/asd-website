@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>项目演示</title>
+		<title>DDMSA</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script
 			crossorigin
@@ -94,7 +94,7 @@
 
 					const { success, errorMsg } = await res.json();
 					if (success) {
-						antd.message.success('注册成功');
+						antd.message.success('regis');
 						window.location.reload();
 					} else {
 						antd.message.error(errorMsg);
@@ -110,17 +110,17 @@
 						<img src="static/assets/images/home.svg" width={450} />
 						<div className="w-[500px] px-14">
 							<h1 className="text-2xl mt-5 font-bold text-white">
-								自闭症数字诊断大模型与系统
+								Digital Diagnosis Model and System for Autism
 							</h1>
 							<h2 className="mt-3 text-base text-white">
-								利用综合信息进行自闭症诊断
+								Using comprehensive information for autism diagnosis
 							</h2>
 						</div>
 					</div>
 					<div className="flex-1 flex">
 						<div className="m-auto p-8 rounded-lg border bg-white">
 							<div className="text-lg font-bold text-center">
-								系统登录
+								Login system
 							</div>
 							<antd.Tabs
 								defaultActiveKey="1"
@@ -128,13 +128,13 @@
 								className="w-[320px]"
 							>
 								<antd.Tabs.TabPane
-									tab="账号密码登录"
+									tab="Login"
 									key="login"
 								>
 									<div className="space-y-4">
 										<antd.Input
 											id="username"
-											placeholder="账号"
+											placeholder="User"
 											prefix={
 												<i class="fa fa-user-o text-gray-400 mr-0.5"></i>
 											}
@@ -145,7 +145,7 @@
 										/>
 										<antd.Input
 											id="password"
-											placeholder="密码"
+											placeholder="Password"
 											prefix={
 												<i class="fa fa-lock text-gray-400 mr-0.5"></i>
 											}
@@ -159,17 +159,17 @@
 											className="w-full"
 											onClick={handleLogin}
 										>
-											登录
+											Login
 										</antd.Button>
 									</div>
 								</antd.Tabs.TabPane>
 								<antd.Tabs.TabPane
-									tab="用户注册"
+									tab="Register"
 									key="register"
 								>
 									<div className="space-y-4">
 										<antd.Input
-											placeholder="用户名"
+											placeholder="Username"
 											prefix={
 												<i class="fa fa-user-o text-gray-400 mr-0.5"></i>
 											}
@@ -179,7 +179,7 @@
 											}}
 										/>
 										<antd.Input
-											placeholder="电子邮件"
+											placeholder="Email Address"
 											prefix={
 												<i class="fa fa-envelope-o text-gray-400 mr-0.5"></i>
 											}
@@ -189,7 +189,7 @@
 											}}
 										/>
 										<antd.Input
-											placeholder="密码"
+											placeholder="Password"
 											prefix={
 												<i class="fa fa-lock text-gray-400 mr-0.5"></i>
 											}
@@ -199,20 +199,20 @@
 											}}
 										/>
 										<antd.Select
-											placeholder="请选择角色"
+											placeholder="Role"
 											className="w-full"
 											options={[
 												{
 													value: 'user',
-													label: '用户'
+													label: 'Ordinary users'
 												},
 												{
 													value: 'manager',
-													label: '管理员'
+													label: 'Administrators'
 												},
 												{
 													value: 'doctor',
-													label: '医生'
+													label: 'Doctor'
 												}
 											]}
 											onChange={(value) => {
@@ -223,7 +223,7 @@
 										/>
 										{role === 'doctor' ? (
 											<antd.Input
-												placeholder="医院"
+												placeholder="Hospital"
 												prefix={
 													<i class="fa fa-hospital-o text-gray-400 mr-0.5"></i>
 												}
@@ -238,7 +238,7 @@
 											className="w-full"
 											onClick={handleRegister}
 										>
-											注册
+											Register
 										</antd.Button>
 									</div>
 								</antd.Tabs.TabPane>
