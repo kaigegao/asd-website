@@ -1,4 +1,1 @@
 caseId,age,gender,name,fmri.image,file,uploadDate,diagnosis,risk,doctor
-1,18,male,name,,ASD_Subject_01.csv,2025-01-09 18:17:51,ASD,0.88888,qqq
-2,18,male,name,,ASD_Subject_03.csv,2025-01-09 18:18:07,ASD,0.88888,qqq
-3,18,male,name,sub-28743_ses-1_task-rest_run-1_bold.nii.gz,sub-28743_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-09 18:18:29,ASD,0.88888,qqq

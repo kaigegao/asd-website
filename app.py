@@ -152,9 +152,9 @@ def get_next_case_id(filename):
         print('ParserError')
         return 0
 
-@app.route('/api/upload_case', methods=['GET', 'POST'])
+@app.route('/api/upload_case', methods=['POST'])
 def file_upload_destination():
-    file = request.files.get("file")
+    file = request.files.get("case-file")
     if file.filename == '':
         flash('No selected file')
         return redirect(request.url)
@@ -190,10 +190,10 @@ def file_upload_destination():
         except pd.errors.EmptyDataError:
             df.to_csv(file_path,  index=False)
 
+        return {'success': True, 'result': str(case_id)}, 200
+
     except Exception as e:
-        flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
-    # return jsonify({'case_id': data_with_case_id['caseId']}), 200
-    return str(case_id)
+        return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
 
 
 @app.route('/upload_case', methods=['GET', 'POST'])
@@ -286,62 +286,78 @@ def upload_files():
     return render_template('bulk_upload2.html')
 
 
-@app.route('/fmri_image_upload', methods=['GET', 'POST'])
+@app.route('/api/fmri_image_upload', methods=['POST'])
 def upload_image_files():
 
-    if request.method == 'POST':
-        file = request.files.get("imagefile")
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
+    file = request.files.get("case-file")
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    try:
+        filename = file.filename
+        filename2 = filename.replace('.nii.gz', '')
+        file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
+
+        file.save(file_path)
+        convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+        data = {
+            'age': request.form.get("age"),
+            'gender': request.form.get("gender"),
+            'name': request.form.get("name"),
+            'fmri.image': filename,
+            'file':filename2+ '_timeseries.csv',
+            'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            # 保留预测功能
+            'diagnosis': "ASD",
+            # 保留预测功能
+            'risk': "0.88888",
+            'doctor': session['username']
+        }
+
+        file_path = app.config.get("case_save_file")
+        case_id = get_next_case_id(file_path)
+
+        data_with_case_id = {'caseId': case_id, **data}
+        columns_order = ['caseId', 'age', 'gender', 'name', 'fmri.image', 'file', 'uploadDate', 'diagnosis', 'risk',
+                            'doctor']
+        df = pd.DataFrame([data_with_case_id], columns=columns_order)
         try:
-            filename = file.filename
-            filename2 = filename.replace('.nii.gz', '')
-            file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
+            existing_df = pd.read_csv(file_path)
+            updated_df = pd.concat([existing_df, df], ignore_index=True)
+            updated_df.to_csv(file_path, index=False)
 
-            file.save(file_path)
-            convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
-            data = {
-                'age': request.form.get("age"),
-                'gender': request.form.get("gender"),
-                'name': request.form.get("name"),
-                'fmri.image': filename,
-                'file':filename2+ '_timeseries.csv',
-                'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                # 保留预测功能
-                'diagnosis': "ASD",
-                # 保留预测功能
-                'risk': "0.88888",
-                'doctor': session['username']
-            }
+        except pd.errors.EmptyDataError:
+            df.to_csv(file_path, index=False)
 
-            file_path = app.config.get("case_save_file")
-            case_id = get_next_case_id(file_path)
+        counter = 0
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        target_folder = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        os.makedirs(target_folder, exist_ok=True)
+        img = load_img(file_path)
+        num_time_points = img.shape[-1]
+        for brain_index in range(0,num_time_points,int(num_time_points/5)):
+            # 提取当前时间点的数据
+            first_volume = image.index_img(img, brain_index)
+            html_view = plotting.view_img(first_volume)
+            save_name = f"brain_image_{counter}.html"
+            final_path = os.path.join(target_folder, save_name)
+            html_view.save_as_html(final_path)
+            counter += 1
 
-            data_with_case_id = {'caseId': case_id, **data}
-            columns_order = ['caseId', 'age', 'gender', 'name', 'fmri.image', 'file', 'uploadDate', 'diagnosis', 'risk',
-                             'doctor']
-            df = pd.DataFrame([data_with_case_id], columns=columns_order)
-            try:
-                existing_df = pd.read_csv(file_path)
-                updated_df = pd.concat([existing_df, df], ignore_index=True)
-                updated_df.to_csv(file_path, index=False)
-
-            except pd.errors.EmptyDataError:
-                df.to_csv(file_path, index=False)
-
-            # file_path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
-            # data = pd.read_csv(file_path, index_col=0)
-            # table_html = data.to_html(index=True)
-            # 返回包含case_id的JSON响应给前端
-            # return jsonify({'case_id': str(data_with_case_id['caseId'])}), 200
-            # return render_template('case_detail.html',  case= data_with_case_id['caseId'],table_html=table_html)
-        except Exception as e:
-            flash(f'Error reading file {"caseInfo"}: {str(e)}', 'danger')
-
-        # return jsonify({'case_id': data_with_case_id['caseId']}), 200
-        return str(case_id)
-    return render_template('image_upload.html')
+        return {'success': True, 'result': str(case_id)}, 200
+    except Exception as e:
+        return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
+    
+@app.route('/api/query_fmri_image_html_content', methods=['POST'])
+def query_fmri_image_html_content():
+    data=request.get_json()
+    index=data['index']
+    name=data['image_name']
+    app.config['UPLOAD_FOLDER']
+    file_name = f"brain_image_{index}.html"
+    target_folder = os.path.join(app.config['UPLOAD_FOLDER'], name)
+    file_path = os.path.join(target_folder, file_name)
+    return send_file(file_path, mimetype='text/html')
 
 def convert_fmri_image_to_timeseries(image_path, file_name, fmri_save_path):
 
@@ -415,16 +431,13 @@ def query_cases():
         file_path = app.config.get("case_save_file")
 
         df_final = pd.read_csv(file_path)
+        df_final = df_final.applymap(lambda x: None if pd.isna(x) else x)
         filtered_df = df_final[df_final['doctor'] == session.get('username')]
-
-        # camel = filtered_df.to_html(classes='table table-striped', index=False, escape=False, formatters={
-        #     'caseId': lambda x: f'<a href="{url_for("case_detail", case_id=x)}">{x}</a>'
-        # })
-        records = df_final.dropna().to_dict('records')
+        records = df_final.to_dict(orient='records')
     except Exception as e:
-        {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}
+        return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
 
-    return {'success': True, 'result': {'list': records,'total': len(records)}}
+    return {'success': True, 'result': {'list': records,'total': len(records)}}, 200
 
 
 @app.route('/case_detail/<int:case_id>')

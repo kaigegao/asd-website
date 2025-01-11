@@ -63,6 +63,110 @@
 		};
 	</script>
 	<script type="text/babel">
+		const ImageData = (props) => {
+			const { imageName } = props;
+			const [index, setIndex] = React.useState(0);
+			const iframeContents = React.useRef([]);
+			const tooltip = {
+				formatter: (value) => `Image ${value}`
+			};
+
+			const setIframeContent = (content) => {
+				const iframe = document.getElementById('dynamic-iframe');
+				const iframeDocument =
+					iframe.contentDocument || iframe.contentWindow.document;
+
+				// 将HTML内容注入到iframe中
+				iframeDocument.open();
+				iframeDocument.write(content);
+				iframeDocument.close();
+			};
+			const createIframeContentQuery = async (index) => {
+				try {
+					const res = await fetch(
+						'/api/query_fmri_image_html_content',
+						{
+							method: 'POST',
+							headers: {
+								'content-type': 'application/json'
+							},
+							body: JSON.stringify({
+								index,
+								image_name: imageName.split('.nii.gz')[0]
+							})
+						}
+					);
+					if (res.ok) {
+						const htmlContent = await res.text();
+
+						return htmlContent;
+					}
+				} catch (error) {
+					antd.message.error(error.toString());
+				}
+
+				return '';
+			};
+
+			React.useEffect(() => {
+				Promise.all(
+					Array(6)
+						.fill(null)
+						.map((_, index) => createIframeContentQuery(index))
+				).then((data) => {
+					iframeContents.current = data;
+					setIframeContent(data[0]);
+				});
+			}, []);
+
+			React.useEffect(() => {
+				setIframeContent(iframeContents.current[index]);
+			}, [index]);
+
+			return (
+				<div className="mt-4 group relative">
+					<iframe
+						id="dynamic-iframe"
+						width="100%"
+						height="469px"
+						frameborder="0"
+					></iframe>
+					<div
+						className="opacity-0 group-hover:opacity-100 transition absolute h-10 w-10 flex justify-center items-center bg-[rgba(255,255,255,0.7)] top-[50%] translate-y-[-50%] left-6 rounded-full cursor-pointer"
+						onClick={() => {
+							if (index > 0) {
+								setIndex((c) => c - 1);
+							}
+						}}
+					>
+						<i
+							class="fa fa-angle-left text-3xl"
+							aria-hidden="true"
+						></i>
+					</div>
+					<div
+						className="opacity-0 group-hover:opacity-100 transition absolute h-10 w-10 flex justify-center items-center bg-[rgba(255,255,255,0.7)] top-[50%] translate-y-[-50%] right-6 rounded-full cursor-pointer"
+						onClick={() => {
+							if (index < iframeContents.current.length - 1) {
+								setIndex((c) => c + 1);
+							}
+						}}
+					>
+						<i
+							class="fa fa-angle-right text-3xl"
+							aria-hidden="true"
+						></i>
+					</div>
+					<antd.Slider
+						value={index + 1}
+						onChange={(value) => setIndex(value - 1)}
+						max={6}
+						min={1}
+						tooltip={tooltip}
+					/>
+				</div>
+			);
+		};
 		const CsvData = ({ filename }) => {
 			const [loading, setLoading] = React.useState(false);
 			const [result, setResult] = React.useState({ list: [], total: 0 });
@@ -152,7 +256,7 @@
 						scroll={scroll}
 						pagination={pagination}
 					/>
-					<div className="relative mt-4">
+					<div className="relative mt-4 min-h-[450px]">
 						<antd.Select
 							placeholder="请选择"
 							className="w-[200px] absolute top-[26px] left-0 z-[1000]"
@@ -172,14 +276,57 @@
 			const [loading, setLoading] = React.useState(false);
 			const [result, setResult] = React.useState({ list: [], total: 0 });
 			const [open, setOpen] = React.useState(false);
+			const [isModalOpen, setIsModalOpen] = React.useState(false);
 			const [rowData, setRowData] = React.useState({});
+			const [fileList, setFileList] = React.useState([]);
+			const [form] = antd.Form.useForm();
+			const fileType = antd.Form.useWatch('fileType', form);
+
+			const labelCol = { span: 4 };
 			const valueStyle1 = { color: '#3f8600' };
 			const valueStyle2 = { color: '#cf1322' };
 			const pagination = {
 				current: 1,
-				pageSize: 10,
-				total: result.total
+				pageSize: result.total,
+				total: result.total,
+				position: ['none', 'none']
 			};
+			const uploadProps = {
+				fileList,
+				accept: fileType,
+				maxCount: 1,
+				onRemove: (file) => {
+					const index = fileList.indexOf(file);
+					const newFileList = fileList.slice();
+					newFileList.splice(index, 1);
+					setFileList(newFileList);
+				},
+				beforeUpload: (file) => {
+					setFileList([...fileList, file]);
+					return false; // 禁止自动上传
+				},
+				onDrop(e) {
+					console.log('Dropped files', e.dataTransfer.files);
+				}
+			};
+			const initialValues = { fileType: '.csv' };
+
+			const showModal = () => {
+				setIsModalOpen(true);
+			};
+
+			const handleOk = () => {
+				setIsModalOpen(false);
+				form.resetFields();
+				setFileList([]);
+			};
+
+			const handleCancel = () => {
+				setIsModalOpen(false);
+				form.resetFields();
+				setFileList([]);
+			};
+
 			const showDrawer = () => {
 				setOpen(true);
 			};
@@ -189,7 +336,7 @@
 				setRowData({});
 			};
 
-			const onFinish = async (values) => {
+			const handleQuery = async (values) => {
 				try {
 					setLoading(true);
 					const res = await fetch('/api/query_cases', {
@@ -204,43 +351,105 @@
 						const { success, result, errorMsg } = await res.json();
 						if (success && result) {
 							setResult(result);
-						} else {
-							antd.message.error(errorMsg);
+
+							return result;
 						}
+						antd.message.error(errorMsg);
+						return null;
 					}
 				} catch (error) {
 					antd.message.error(error.toString());
 				} finally {
 					setLoading(false);
 				}
+
+				return null;
 			};
 
-			const onFinishFailed = (errorInfo) => {
-				console.log('Failed:', errorInfo);
+			const handleUpload = async () => {
+				try {
+					await form.validateFields();
+					if (fileList.length === 0) {
+						antd.message.error(
+							`Please upload a ${fileType} file and continue`
+						);
+
+						return;
+					}
+
+					const { name, age, gender, fileType } =
+						form.getFieldsValue();
+					const formData = new FormData();
+					formData.append('name', name);
+					formData.append('age', age);
+					formData.append('gender', gender);
+					formData.append('case-file', fileList[0]);
+
+					const res = await fetch(
+						fileType === '.csv'
+							? '/api/upload_case'
+							: '/api/fmri_image_upload',
+						{
+							method: 'POST',
+							body: formData
+						}
+					);
+
+					if (res.ok) {
+						const { result: caseId } = await res.json();
+						// handleQuery()
+						console.log(caseId);
+						const { destroy } = antd.Modal.confirm({
+							title: '上传成功',
+							content: `${fileList[0].name}文件上传成功，是否立即查看？`,
+							onOk: async () => {
+								handleOk();
+								destroy();
+
+								const result = await handleQuery();
+								if (result) {
+									setRowData(
+										result.list.find(
+											(item) => +item.caseId === +caseId
+										)
+									);
+									showDrawer();
+								}
+							}
+						});
+					}
+				} catch (error) {
+					console.log(error);
+				}
 			};
+
+			React.useEffect(() => {
+				handleQuery();
+			}, []);
 
 			return (
 				<div>
-					<antd.Form
-						className="mb-4"
-						name="basic"
-						layout="inline"
-						onFinish={onFinish}
-						onFinishFailed={onFinishFailed}
-						autoComplete="off"
-					>
-						<antd.Form.Item label="Case Id" name="caseId">
-							<antd.Input placeholder="请输入Case Id" />
-						</antd.Form.Item>
-						<antd.Form.Item label="Name" name="name">
-							<antd.Input placeholder="请输入患者姓名" />
-						</antd.Form.Item>
-						<antd.Form.Item>
-							<antd.Button type="primary" htmlType="submit">
-								Submit
-							</antd.Button>
-						</antd.Form.Item>
-					</antd.Form>
+					<div className="flex justify-between mb-4">
+						<antd.Form
+							name="basic"
+							layout="inline"
+							onFinish={handleQuery}
+							autoComplete="off"
+						>
+							<antd.Form.Item label="Case Id" name="caseId">
+								<antd.Input placeholder="请输入Case Id" />
+							</antd.Form.Item>
+							<antd.Form.Item label="Name" name="name">
+								<antd.Input placeholder="请输入患者姓名" />
+							</antd.Form.Item>
+							<antd.Form.Item>
+								<antd.Button type="primary" htmlType="submit">
+									Query
+								</antd.Button>
+							</antd.Form.Item>
+						</antd.Form>
+						<antd.Button onClick={showModal}>Upload</antd.Button>
+					</div>
 					<antd.Table
 						rowKey="caseId"
 						loading={loading}
@@ -249,8 +458,7 @@
 							{
 								title: 'Case Id',
 								dataIndex: 'caseId',
-								key: 'caseId',
-								render: (text) => <a>{text}</a>
+								key: 'caseId'
 							},
 							{
 								title: 'Age',
@@ -269,8 +477,9 @@
 							},
 							{
 								title: 'Fmri Image',
-								dataIndex: 'fmriImage',
-								key: 'fmriImage'
+								dataIndex: 'fmri.image',
+								key: 'fmriImage',
+								render: (v) => (v === null ? '--' : v)
 							},
 							{
 								title: 'File',
@@ -403,15 +612,83 @@
 									filename={rowData.file}
 								/>
 							</div>
-							<div>
-								<div className="flex gap-x-2 font-bold text-lg">
-									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
-									<div>Image Data</div>
+							{rowData['fmri.image'] ? (
+								<div>
+									<div className="flex gap-x-2 font-bold text-lg">
+										<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+										<div>Image Data</div>
+									</div>
+									<ImageData
+										imageName={rowData['fmri.image']}
+									/>
 								</div>
-								<div className="flex mt-2"></div>
-							</div>
+							) : null}
 						</div>
 					</antd.Drawer>
+					<antd.Modal
+						title="Upload File"
+						forceRender
+						open={isModalOpen}
+						onOk={handleUpload}
+						onCancel={handleCancel}
+					>
+						<antd.Form
+							name="upload"
+							form={form}
+							autoComplete="off"
+							labelCol={labelCol}
+							initialValues={initialValues}
+						>
+							<antd.Form.Item
+								label="Age"
+								name="age"
+								rules={[{ required: true }]}
+							>
+								<antd.Input placeholder="Please enter age" />
+							</antd.Form.Item>
+							<antd.Form.Item
+								label="Name"
+								name="name"
+								rules={[{ required: true }]}
+							>
+								<antd.Input placeholder="Please enter name" />
+							</antd.Form.Item>
+							<antd.Form.Item
+								label="Gender"
+								name="gender"
+								rules={[{ required: true }]}
+							>
+								<antd.Input placeholder="Please enter gender" />
+							</antd.Form.Item>
+							<antd.Form.Item
+								label="File Type"
+								name="fileType"
+								required
+							>
+								<antd.Select
+									placeholder="Please select file type"
+									options={[
+										{ label: 'Fmri.CSV', value: '.csv' },
+										{ label: 'Fmri.Image', value: '.gz' }
+									]}
+								/>
+							</antd.Form.Item>
+							<antd.Form.Item label="File">
+								<antd.Upload.Dragger {...uploadProps}>
+									<p className="">
+										<i
+											className="fa fa-cloud-upload text-3xl"
+											aria-hidden="true"
+										></i>
+									</p>
+									<p className="ant-upload-text">
+										Click or drag file ({fileType}) to this
+										area to upload
+									</p>
+								</antd.Upload.Dragger>
+							</antd.Form.Item>
+						</antd.Form>
+					</antd.Modal>
 				</div>
 			);
 		};
@@ -449,7 +726,7 @@
 
 			return (
 				<div className="flex h-full">
-					<aside className="flex flex-col h-full w-[256px] relative">
+					<aside className="flex flex-col h-full w-[256px]">
 						<div className="bg-[#001529] text-white py-6 text-2xl font-bold text-center">
 							Welcome, {username}
 						</div>
@@ -460,25 +737,9 @@
 							theme="dark"
 							defaultSelectedKeys={[currentKey]}
 							items={[
-								getItem('Upload Fmri Csv', 'upload_case', null),
-								getItem(
-									'Upload Fmri Image',
-									'fmri_image_upload',
-									null
-								),
 								getItem('Case Management', 'view_cases', null)
 							]}
 						/>
-						<antd.Button
-							className="absolute bottom-2 left-2 text-white hover:text-gray-400"
-							type="text"
-							icon={<i class="fa fa-sign-out mr-1"></i>}
-							onClick={() => {
-								window.location.href = '/';
-							}}
-						>
-							Log out
-						</antd.Button>
 					</aside>
 					<main className="flex-1 p-4">{getRenderContent()}</main>
 				</div>
