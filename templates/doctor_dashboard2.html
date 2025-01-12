@@ -53,8 +53,15 @@
 		<div id="doctor_dashboard_root"></div>
 	</body>
 	<script type="text/babel">
-		const UploadCase = () => {
-			return <div>On this website, you can upload CSV and NII.GZ files to manage your cases</div>;
+		const Welcome = () => {
+			const [] = React.useState();
+
+			return (
+				<div>
+					On this website, you can upload CSV and NII.GZ files to
+					manage your cases
+				</div>
+			);
 		};
 	</script>
 	<script type="text/babel">
@@ -279,6 +286,11 @@
 			const [isModalOpen, setIsModalOpen] = React.useState(false);
 			const [rowData, setRowData] = React.useState({});
 			const [fileList, setFileList] = React.useState([]);
+			const [predictData, setPredictData] = React.useState({
+				diagnosis: '',
+				risk: ''
+			});
+			const [isUploading, setIsUploading] = React.useState(false);
 			const [form] = antd.Form.useForm();
 			const fileType = antd.Form.useWatch('fileType', form);
 
@@ -368,6 +380,7 @@
 
 			const handleUpload = async () => {
 				try {
+					setIsUploading(true);
 					await form.validateFields();
 					if (fileList.length === 0) {
 						antd.message.error(
@@ -396,9 +409,16 @@
 					);
 
 					if (res.ok) {
-						const { result: caseId } = await res.json();
-						// handleQuery()
-						console.log(caseId);
+						const {
+							result: caseId,
+							success,
+							errorMsg
+						} = await res.json();
+						if (!success) {
+							antd.message.error(errorMsg);
+
+							return;
+						}
 						const { destroy } = antd.Modal.confirm({
 							title: 'Upload successful',
 							content: `${fileList[0].name}File uploaded successfully, Do you want to view detail now？`,
@@ -415,11 +435,17 @@
 									);
 									showDrawer();
 								}
+							},
+							onCancel: () => {
+								handleOk();
+								destroy();
 							}
 						});
 					}
 				} catch (error) {
 					console.log(error);
+				} finally {
+					setIsUploading(false);
 				}
 			};
 
@@ -516,18 +542,61 @@
 											size="small"
 											onClick={async () => {
 												setRowData(record);
+												setPredictData({
+													diagnosis: record.diagnosis,
+													risk: record.risk
+												});
 												showDrawer();
 											}}
 										>
 											view
 										</antd.Button>
-										<antd.Button
-											type="link"
-											size="small"
-											danger
+										<antd.Popconfirm
+											title="Are you sure to delete this record?"
+											onConfirm={async () => {
+												try {
+													const res = await fetch(
+														'/delete_case',
+														{
+															method: 'POST',
+															headers: {
+																'content-type':
+																	'application/json'
+															},
+															body: JSON.stringify(
+																{
+																	case_id:
+																		record.caseId
+																}
+															)
+														}
+													);
+
+													if (res.ok) {
+														const { success } =
+															await res.json();
+
+														if (success) {
+															handleQuery();
+														}
+													}
+												} catch (error) {
+													antd.message.error(
+														error.toString()
+													);
+												}
+											}}
+											okText="Yes"
+											cancelText="No"
 										>
-											delete
-										</antd.Button>
+											<antd.Button
+												type="link"
+												size="small"
+												danger
+											>
+												delete
+											</antd.Button>
+										</antd.Popconfirm>
 									</div>
 								)
 							}
@@ -570,7 +639,7 @@
 										label="Fmri Image"
 										span={2}
 									>
-										{rowData.fmriImage}
+										{rowData['fmri.image']}
 									</antd.Descriptions.Item>
 									<antd.Descriptions.Item
 										label="File"
@@ -581,20 +650,71 @@
 								</antd.Descriptions>
 							</div>
 							<div>
-								<div className="flex gap-x-2 font-bold text-lg">
+								<div className="flex gap-x-2 font-bold text-lg items-center">
 									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
 									<div>Predict</div>
+									<antd.Tooltip title="重新predict">
+										<antd.Button
+											type="text"
+											icon={
+												<i
+													class="fa fa-refresh"
+													aria-hidden="true"
+												></i>
+											}
+											onClick={async () => {
+												try {
+													const res = await fetch(
+														'/predict',
+														{
+															method: 'POST',
+															headers: {
+																'content-type':
+																	'application/json'
+															},
+															body: JSON.stringify(
+																{
+																	viewing_file:
+																		rowData.file
+																}
+															)
+														}
+													);
+
+													if (res.ok) {
+														const { result } =
+															await res.json();
+														const {
+															diagnosis,
+															risk
+														} = result;
+														setPredictData({
+															diagnosis,
+															risk
+														});
+														antd.message.success(
+															'predict成功'
+														);
+													}
+												} catch (error) {
+													antd.message.error(
+														error.toString()
+													);
+												}
+											}}
+										/>
+									</antd.Tooltip>
 								</div>
 								<div className="flex mt-2">
 									<antd.Statistic
 										title="Diagnosis"
-										value={rowData.diagnosis}
+										value={predictData.diagnosis}
 										valueStyle={valueStyle1}
 										className="flex-1"
 									/>
 									<antd.Statistic
 										title="Risk"
-										value={rowData.risk}
+										value={predictData.risk}
 										precision={2}
 										valueStyle={valueStyle2}
 										suffix="%"
@@ -628,6 +748,8 @@
 					<antd.Modal
 						title="Upload File"
 						forceRender
+						destroyOnClose
+						maskClosable={false}
 						open={isModalOpen}
 						onOk={handleUpload}
 						onCancel={handleCancel}
@@ -688,6 +810,12 @@
 								</antd.Upload.Dragger>
 							</antd.Form.Item>
 						</antd.Form>
+						{isUploading ? (
+							<div className="absolute top-0 bottom-0 left-0 right-0 bg-[rgba(255,255,255,0.6)] z-[1000] flex flex-col items-center justify-center">
+								<antd.Spin />
+								<div className="mt-2">上传中，请勿关闭弹窗</div>
+							</div>
+						) : null}
 					</antd.Modal>
 				</div>
 			);
@@ -705,23 +833,32 @@
 			};
 		}
 		const App = () => {
-			const [currentKey, setCurrentKey] = React.useState(
-				window.location.hash.slice(1) || 'upload_case'
-			);
+			const [currentKey, setCurrentKey] = React.useState('welcome');
 			const getRenderContent = () => {
 				switch (currentKey) {
-					case 'upload_case':
-						return <UploadCase />;
-					case 'fmri_image_upload':
-						return <FmriImageUpload />;
+					case 'welcome':
+						return <Welcome />;
 					case 'view_cases':
 						return <ViewCases />;
 				}
 			};
 
-			const onClick = (e) => {
-				window.location.hash = e.key;
-				setCurrentKey(e.key);
+			const onClick = async (e) => {
+				if (e.key === 'logout') {
+					try {
+						const res = await fetch('/logout', { method: 'POST' });
+						if (res.ok) {
+							const { success } = await res.json();
+							if (success) {
+								window.location.replace('/');
+							}
+						}
+					} catch (error) {
+						antd.message.error(error.toString());
+					}
+				} else {
+					setCurrentKey(e.key);
+				}
 			};
 
 			return (

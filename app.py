@@ -461,8 +461,8 @@ def case_detail(case_id):
 
 
 
-@app.route('/delete_case/<int:case_id>', methods=['POST'])
-def delete_case(case_id):
+@app.route('/delete_case', methods=['POST'])
+def delete_case():
     # 检查用户是否登录
     username = session.get('username')
     if not username:
@@ -470,6 +470,7 @@ def delete_case(case_id):
         return redirect(url_for('login'))
 
     try:
+        data = request.get_json()
         file_path = app.config.get("case_save_file")
         if not file_path or not os.path.exists(file_path):
             raise FileNotFoundError("病例保存文件路径未配置或文件不存在.")
@@ -478,11 +479,11 @@ def delete_case(case_id):
         df_final = pd.read_csv(file_path)
 
         # 确认当前医生有权删除该病例
-        if df_final[df_final['caseId'] == case_id]['doctor'].values[0] != username:
+        if df_final[df_final['caseId'] == data['case_id']]['doctor'].values[0] != username:
             flash('您无权删除此病历.', 'danger')
             return redirect(url_for('view_cases'))
 
-        row = df_final.loc[df_final['caseId'] == case_id].iloc[0]
+        row = df_final.loc[df_final['caseId'] == data['case_id']].iloc[0]
         fmri_image = row['fmri.image']
         file_value = row['file']
         # 删除fmri.image对应的文件（如果存在）
@@ -503,17 +504,15 @@ def delete_case(case_id):
             else:
                 print(f"文件不存在: {csv_file_path}")
         # 删除对应的行
-        df_updated = df_final[df_final['caseId'] != case_id]
+        df_updated = df_final[df_final['caseId'] != data['case_id']]
 
         # 保存更新后的DataFrame回CSV文件
         df_updated.to_csv(file_path, index=False)
 
-        flash('病历删除成功.', 'success')
+        return {'success': True}, 200
     except Exception as e:
-        app.logger.error(f'Error deleting case {case_id}: {str(e)}')
-        flash(f'删除病历时发生错误: {str(e)}', 'danger')
-
-    return redirect(url_for('view_cases'))
+        app.logger.error(f'Error deleting case {data["case_id"]}: {str(e)}')
+        return {'success': False, 'errorMsg': f'删除病历时发生错误: {str(e)}'}, 200
 
 @app.route('/api/query_csv_data', methods=['POST'])
 def query_csv_data():
@@ -548,20 +547,20 @@ def get_column_data():
         return {'success': False, 'errorMsg': str(e)}, 500
 
 
-@app.route('/predict/<string:viewing_file>', methods=['POST'])
-def predict_case(viewing_file):
-
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], viewing_file)
+@app.route('/predict', methods=['POST'])
+def predict_case():
+    data = request.get_json()
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['viewing_file'])
     try:
         # 读取文件内容，将第一列设置为索引
         data = pd.read_csv(file_path)
 
         # 假设你有一个预测函数 predict
-        diagnosis, risk = predict(data.values)
+        # diagnosis, risk = predict(data.values)
 
-        return jsonify({'diagnosis': diagnosis, 'risk': risk})
+        return {'success': True, 'result': {'diagnosis': 'NORMAL', 'risk': '0.1'}}, 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return {'success': False,'errorMsg': str(e)}, 200
 
 
 @app.route('/get_nii_data/<filename>')
@@ -773,12 +772,11 @@ def login():
     else:
         return {'success': False, 'errorMsg': '用户名或密码错误，请重试。'}, 200
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
     session.pop('username', None)
     session.pop('role', None)
-    flash('已退出登录。')
-    return redirect(url_for('index'))
+    return {'success': True}, 200
 
 
 @app.route('/doctor_dashboard')
