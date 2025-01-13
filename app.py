@@ -425,14 +425,24 @@ def view_cases():
 def query_cases():
     # 获取参数处理筛选项逻辑
     filter = request.get_json()
-
-    records = []
     try:
         file_path = app.config.get("case_save_file")
 
         df_final = pd.read_csv(file_path)
         df_final = df_final.applymap(lambda x: None if pd.isna(x) else x)
         filtered_df = df_final[df_final['doctor'] == session.get('username')]
+
+        # 根据filter中提供的条件进行筛选
+        mask = df_final['doctor'] == session.get('username')
+        if filter.get('caseId') not in [None, '']:
+            case_id_mask = df_final['caseId']== int(filter['caseId'])
+            mask &= case_id_mask
+        if filter.get('name') not in [None, '']:
+            name_mask = df_final['name'] == filter['name']
+            mask &= name_mask
+
+        filtered_df = df_final[mask]
+
         records = filtered_df.to_dict(orient='records')
     except Exception as e:
         return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
@@ -766,11 +776,11 @@ def login():
             if df['role'] == 'doctor':
                 return {'success': True}, 200
             else:
-                return {'success': False, 'errorMsg': "不是医生角色，暂时无法登录"}, 200
+                return {'success': False, 'errorMsg': "Not a doctor, temporarily unable to log in"}, 200
         else:
-            return {'success': False, 'errorMsg': f"用户 {data['username']} 存在，但密码不一致。"}, 200
+            return {'success': False, 'errorMsg': f"User {data['username']} exists, But the passwords don't match."}, 200
     else:
-        return {'success': False, 'errorMsg': '用户名或密码错误，请重试。'}, 200
+        return {'success': False, 'errorMsg': 'The username or password is incorrect, please try again.'}, 200
 
 @app.route('/logout', methods=['POST'])
 def logout():
