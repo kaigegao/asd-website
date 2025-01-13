@@ -162,6 +162,12 @@ def file_upload_destination():
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
         file.save(file_path)
+
+        # 读取文件内容，将第一列设置为索引
+        data = pd.read_csv(file_path)
+        # 假设你有一个预测函数 predict
+        diagnosis, risk = predict(data.values)
+
         data = {
             'age': request.form.get("age"),
             'gender': request.form.get("gender"),
@@ -170,9 +176,9 @@ def file_upload_destination():
             'file': filename,
             'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             #保留预测功能
-            'diagnosis':"ASD",
+            'diagnosis':diagnosis,
             # 保留预测功能
-            'risk':"0.88888",
+            'risk':str(risk),
             'doctor':session['username']
         }
         cases.append(data)
@@ -300,6 +306,11 @@ def upload_image_files():
 
         file.save(file_path)
         convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+
+        file_path2 = os.path.join(app.config.get("UPLOAD_FOLDER"), filename2+ '_timeseries.csv')
+        data = pd.read_csv(file_path2)
+        diagnosis, risk = predict(data.values)
+
         data = {
             'age': request.form.get("age"),
             'gender': request.form.get("gender"),
@@ -308,9 +319,9 @@ def upload_image_files():
             'file':filename2+ '_timeseries.csv',
             'uploadDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             # 保留预测功能
-            'diagnosis': "ASD",
+            'diagnosis': diagnosis,
             # 保留预测功能
-            'risk': "0.88888",
+            'risk': str(risk),
             'doctor': session['username']
         }
 
@@ -559,16 +570,31 @@ def get_column_data():
 
 @app.route('/predict', methods=['POST'])
 def predict_case():
-    data = request.get_json()
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['viewing_file'])
+    req = request.get_json()
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], req['viewing_file'])
     try:
         # 读取文件内容，将第一列设置为索引
         data = pd.read_csv(file_path)
-
         # 假设你有一个预测函数 predict
-        # diagnosis, risk = predict(data.values)
+        diagnosis, risk = predict(data.values)
 
-        return {'success': True, 'result': {'diagnosis': 'NORMAL', 'risk': '0.1'}}, 200
+        #diagnosis, risk ='ASD',0.99
+
+        csv_path = app.config.get("case_save_file")
+        df= pd.read_csv(csv_path)
+
+        # 找到df中‘file’列的值等于req['viewing_file']的那一行
+        match = df['file'] == req['viewing_file']
+
+        if match.any():  # 如果找到了匹配的行
+            # 更新diagnosis和risk值
+            df.loc[match, 'diagnosis'] = diagnosis
+            df.loc[match, 'risk'] = str(risk)
+
+            # 将更新后的数据写回到csv文件中
+            df.to_csv(csv_path, index=False)
+
+        return {'success': True, 'result': {'diagnosis': diagnosis, 'risk': str(risk)}}, 200
     except Exception as e:
         return {'success': False,'errorMsg': str(e)}, 200
 
