@@ -26,10 +26,7 @@
 			crossorigin="anonymous"
 			referrerpolicy="no-referrer"
 		></script>
-		<link
-			rel="stylesheet"
-			href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.css"
-		/>
+		<link rel="stylesheet" href="/static/assets/css/font-awesome.css" />
 		<script src="/static/assets/js/plotly-latest.min.js"></script>
 		<style>
 			html,
@@ -57,7 +54,7 @@
 			const [] = React.useState();
 
 			return (
-				<div>
+				<div className="text-2xl">
 					On this website, you can upload CSV and NII.GZ files to
 					manage your cases
 				</div>
@@ -428,11 +425,14 @@
 
 								const result = await handleQuery();
 								if (result) {
-									setRowData(
-										result.list.find(
-											(item) => +item.caseId === +caseId
-										)
+									const newData = result.list.find(
+										(item) => +item.caseId === +caseId
 									);
+									setRowData(newData);
+									setPredictData({
+										diagnosis: newData.diagnosis,
+										risk: newData.risk
+									});
 									showDrawer();
 								}
 							},
@@ -709,14 +709,22 @@
 									<antd.Statistic
 										title="Diagnosis"
 										value={predictData.diagnosis}
-										valueStyle={valueStyle1}
+										valueStyle={
+											predictData.diagnosis === 'NORMAL'
+												? valueStyle1
+												: valueStyle2
+										}
 										className="flex-1"
 									/>
 									<antd.Statistic
 										title="Risk"
 										value={predictData.risk}
 										precision={2}
-										valueStyle={valueStyle2}
+										valueStyle={
+											predictData.diagnosis === 'NORMAL'
+												? valueStyle1
+												: valueStyle2
+										}
 										className="flex-1"
 									/>
 								</div>
@@ -812,7 +820,9 @@
 						{isUploading ? (
 							<div className="absolute top-0 bottom-0 left-0 right-0 bg-[rgba(255,255,255,0.6)] z-[1000] flex flex-col items-center justify-center">
 								<antd.Spin />
-								<div className="mt-2">Uploading, please do not close the window</div>
+								<div className="mt-2">
+									Uploading, please do not close the window
+								</div>
 							</div>
 						) : null}
 					</antd.Modal>
