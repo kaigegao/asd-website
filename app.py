@@ -23,7 +23,7 @@ from nilearn import image
 import nibabel as nib
 import matplotlib
 
-matplotlib.use("TkAgg")
+matplotlib.use("Agg")
 
 
 app = Flask(__name__)
