@@ -23,6 +23,11 @@ from nilearn import image
 import nibabel as nib
 import matplotlib
 
+import pickle
+import networkx as nx
+import plotly.graph_objects as go
+from torch_geometric.data import Data
+
 matplotlib.use("Agg")
 
 
@@ -166,7 +171,7 @@ def file_upload_destination():
         # 读取文件内容，将第一列设置为索引
         data = pd.read_csv(file_path)
         # 假设你有一个预测函数 predict
-        diagnosis, risk = predict(data.values)
+        diagnosis, risk, graph = predict(data.values)
 
         data = {
             'age': request.form.get("age"),
@@ -340,7 +345,7 @@ def upload_image_files():
 
         file_path2 = os.path.join(app.config.get("UPLOAD_FOLDER"), filename2+ '_timeseries.csv')
         data = pd.read_csv(file_path2)
-        diagnosis, risk = predict(data.values)
+        diagnosis, risk, graph = predict(data.values)
 
         data = {
             'age': request.form.get("age"),
@@ -633,7 +638,7 @@ def predict_case():
         # 读取文件内容，将第一列设置为索引
         data = pd.read_csv(file_path)
         # 假设你有一个预测函数 predict
-        diagnosis, risk = predict(data.values)
+        diagnosis, risk, graph = predict(data.values)
 
         #diagnosis, risk ='ASD',0.99
 
@@ -722,7 +727,7 @@ def predict(data):
     inputs = inputs.unsqueeze(0).float().to(args.device)
     with torch.no_grad():
         try:
-            logit, _, _, _ = model(inputs)
+            logit, _, _, _, graph = model(inputs)
             _, predicted = torch.max(logit, 1)
             proba = torch.nn.functional.softmax(logit, dim=1).detach().cpu().numpy()
             diagnosis = 'ASD' if predicted.item() == 0 else 'Normal'
@@ -731,10 +736,10 @@ def predict(data):
             print("Error in predict:", e)
             raise e
     if diagnosis == 'ASD':
-        return diagnosis, risk
+        return diagnosis, risk, graph
     else:
         asd_risk = (1 - risk).__round__(4)
-        return diagnosis, asd_risk
+        return diagnosis, asd_risk, graph
 
 
 @app.route('/change_password', methods=['GET', 'POST'])
@@ -891,6 +896,137 @@ def doctor_dashboard():
     else:
         flash('您无权访问此页面。')
         return redirect(url_for('index'))
+
+
+
+@app.route('/plot')
+def plot():
+    # filename = secure_filename(file.filename)
+    # file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
+    # data = pd.read_csv(file_path)
+    # diagnosis, risk, loaded_data = predict(data.values)
+    with open("graph_data.pkl", "rb") as f:
+        loaded_data = pickle.load(f)
+
+    node_features = loaded_data.x.numpy()
+    edge_index = loaded_data.edge_index.t().numpy()
+    node_labels = loaded_data.y.numpy()
+
+    headers = read_csv_headers("ASD Subject 02.csv")
+
+    G = create_graph(node_features, edge_index, node_labels, headers)
+    edges = int(request.args.get('edges', 20))
+    opacity = float(request.args.get('opacity', 0.8))
+    fig_dict = generate_plotly_fig(G, edges, opacity)
+    return jsonify(fig_dict)
+
+
+def read_csv_headers(file_path):
+    with open(file_path, mode='r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        headers = next(csv_reader)  # 读取表头
+        headers = headers[1:]  # 跳过第一列
+    return headers
+
+def create_graph(node_features, edge_index, node_labels, headers):
+    G = nx.Graph()
+    for i, header in enumerate(headers):
+        G.add_node(i, name=header, feature=node_features[i], label=node_labels[i])
+    for edge in edge_index:
+        weight = edge[0] + edge[1]
+        G.add_edge(edge[0], edge[1], weight=weight)
+    return G
+
+def generate_plotly_fig(G, top_n_edges=20, opacity=0.8):
+    pos = nx.spring_layout(G, k=0.5, iterations=20)
+    sorted_edges = sorted(G.edges(data=True), key=lambda x: x[2].get('weight', 1), reverse=True)
+    top_n_edges_data = sorted_edges[:top_n_edges]
+
+    G_filtered = nx.Graph()
+    G_filtered.add_nodes_from(G.nodes(data=True))
+    G_filtered.add_edges_from((u, v) for u, v, d in top_n_edges_data)
+
+    node_x = [pos[k][0] for k in G_filtered.nodes()]
+    node_y = [pos[k][1] for k in G_filtered.nodes()]
+
+    weight_color_map = {}
+    min_weight = min(edge[2]['weight'] for edge in top_n_edges_data)
+    max_weight = max(edge[2]['weight'] for edge in top_n_edges_data)
+    for edge in top_n_edges_data:
+        weight = edge[2]['weight']
+        if weight not in weight_color_map:
+            color = f'rgba(0,0,{int(255*(weight-min_weight)/(max_weight-min_weight))},{opacity})'
+            weight_color_map[weight] = {'edges': [], 'color': color}
+        weight_color_map[weight]['edges'].append(edge)
+
+    fig = go.Figure(layout=go.Layout(
+        title='<br>网络图示例',
+        titlefont_size=16,
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        annotations=[dict(
+            text="Python code: <a href='https://plotly.com/'>https://plotly.com/</a>",
+            showarrow=False,
+            xref="paper", yref="paper",
+            x=0.005, y=-0.002)],
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+    )
+
+    for weight, data in weight_color_map.items():
+        edge_x = []
+        edge_y = []
+        for u, v, d in data['edges']:
+            x0, y0 = pos[u]
+            x1, y1 = pos[v]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+        fig.add_trace(go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=0.5, color=data['color']),
+            hoverinfo='none',
+            mode='lines'))
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        marker=dict(
+            showscale=True,
+            colorscale='YlGnBu',
+            size=10,
+            color=[G_filtered.nodes[n]['label'] for n in G_filtered.nodes()],
+            line_width=2),
+        text=[G_filtered.nodes[n]['name'] for n in G_filtered.nodes()],
+        textposition="top center")
+    fig.add_trace(node_trace)
+
+    fig_dict = fig.to_dict()
+    return convert_fig_to_json_serializable(fig_dict)
+
+def convert_fig_to_json_serializable(fig_dict):
+    def convert(o):
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        elif isinstance(o, np.generic):
+            return o.item()
+        return o
+    return json_traverse(fig_dict, convert)
+
+def json_traverse(obj, convert_function):
+    if isinstance(obj, dict):
+        new_obj = {}
+        for key, value in obj.items():
+            new_obj[key] = json_traverse(value, convert_function)
+        return new_obj
+    elif isinstance(obj, list):
+        return [json_traverse(element, convert_function) for element in obj]
+    else:
+        return convert_function(obj)
+
+
+
 
 
 if __name__ == '__main__':

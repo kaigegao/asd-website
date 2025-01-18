@@ -39,4 +39,4 @@ class MyModel(nn.Module):
         rep = self.fusion(ts_rep, gcn_rep)
         out = self.linear(rep)
         del G
-        return F.log_softmax(out, dim=1), out, ts_rep, gcn_rep
+        return F.log_softmax(out, dim=1), out, ts_rep, gcn_rep, graph
