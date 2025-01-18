@@ -202,6 +202,37 @@ def file_upload_destination():
         return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
 
 
+
+
+@app.route('/api/upload_feedback', methods=['POST'])
+def upload_feedback():
+    try:
+        # 获取表单数据
+        caseId = request.form.get('caseId')
+        feedback = request.form.get('feedback')
+        doctor = session.get('username', 'Unknown')
+        # 指定CSV文件路径
+        csv_file_path = 'feedback.csv'
+
+        # 检查文件是否存在，如果不存在则创建并写入表头
+        file_exists = os.path.exists(csv_file_path)
+
+        with open(csv_file_path, mode='a', newline='') as csv_file:
+            fieldnames = ['caseId', 'feedback', 'doctor']
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+            if not file_exists:
+                writer.writeheader()  # 写入表头
+
+            # 写入数据
+            writer.writerow({'caseId': caseId, 'feedback': feedback, 'doctor': doctor})
+
+        return {'success': True, 'result': ''}, 200
+    except Exception as e:
+        return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
+
+
+
 @app.route('/upload_case', methods=['GET', 'POST'])
 def upload_case():
     return render_template('upload_case.html')
@@ -460,6 +491,32 @@ def query_cases():
 
     return {'success': True, 'result': {'list': records,'total': len(records)}}, 200
 
+@app.route('/api/query_feed', methods=['POST'])
+def query_feed():
+    filter_data = request.get_json()
+    try:
+        csv_file_path = 'feedback.csv'
+        records = []
+        with open(csv_file_path, mode='r', newline='') as csv_file:
+            reader = csv.DictReader(csv_file)
+            for row in reader:
+                # 获取当前用户的用户名
+                current_username = session.get('username', 'Unknown')
+                # 获取filter中的caseId
+                filter_case_id = filter_data.get('caseId', '')
+
+                # 如果filter中的caseId为空，匹配所有当前session.get('username')和csv中的'doctor'列符合的记录
+                if not filter_case_id:
+                    if row['doctor'] == current_username:
+                        records.append({'caseId': row['caseId'], 'feedback': row['feedback']})
+                # 如果filter中的caseId有内容且不为''，匹配当前session.get('username')和csv中的'doctor'列符合的记录，且'caseId'也要匹配
+                else:
+                    if row['doctor'] == current_username and row['caseId'] == filter_case_id:
+                        records.append({'caseId': row['caseId'], 'feedback': row['feedback']})
+    except Exception as e:
+        return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
+
+    return {'success': True, 'result': {'list': records,'total': len(records)}}, 200
 
 @app.route('/case_detail/<int:case_id>')
 def case_detail(case_id):

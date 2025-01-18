@@ -251,15 +251,7 @@
 
 			return (
 				<div className="w-full">
-					<antd.Table
-						className="w-full mt-4"
-						loading={loading}
-						bordered
-						columns={columns || []}
-						dataSource={result.list || []}
-						scroll={scroll}
-						pagination={pagination}
-					/>
+
 					<div className="relative mt-4 min-h-[450px]">
 						<antd.Select
 							placeholder="请选择"
@@ -273,12 +265,22 @@
 						/>
 						<div id="plot-container"></div>
 					</div>
+					<antd.Table
+							className="w-full mt-4"
+							loading={loading}
+							bordered
+							columns={columns || []}
+							dataSource={result.list || []}
+							scroll={scroll}
+							pagination={pagination}
+					/>
+
 				</div>
 			);
 		};
 		const ViewCases = () => {
 			const [loading, setLoading] = React.useState(false);
-			const [result, setResult] = React.useState({ list: [], total: 0 });
+			const [result, setResult] = React.useState({list: [], total: 0});
 			const [open, setOpen] = React.useState(false);
 			const [isModalOpen, setIsModalOpen] = React.useState(false);
 			const [rowData, setRowData] = React.useState({});
@@ -729,16 +731,6 @@
 									/>
 								</div>
 							</div>
-							<div>
-								<div className="flex gap-x-2 font-bold text-lg">
-									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
-									<div>CSV Data</div>
-								</div>
-								<CsvData
-									key={rowData.caseId}
-									filename={rowData.file}
-								/>
-							</div>
 							{rowData['fmri.image'] ? (
 								<div>
 									<div className="flex gap-x-2 font-bold text-lg">
@@ -750,6 +742,17 @@
 									/>
 								</div>
 							) : null}
+							<div>
+								<div className="flex gap-x-2 font-bold text-lg">
+									<div className="w-[3px] h-6 bg-[#1890ff] mt-0.5" />
+									<div>CSV Data</div>
+								</div>
+								<CsvData
+									key={rowData.caseId}
+									filename={rowData.file}
+								/>
+							</div>
+
 						</div>
 					</antd.Drawer>
 					<antd.Modal
@@ -829,6 +832,163 @@
 				</div>
 			);
 		};
+const Feedback = () => {
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState({ list: [], total: 0 });
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [form] = antd.Form.useForm();
+
+  const pagination = {
+    current: 1,
+    pageSize: 10,
+    total: result.total,
+  };
+
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleOk = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+  const handleQuery = async (values) => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/query_feed', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(values || {})
+      });
+
+      if (res.ok) {
+        const { success, result, errorMsg } = await res.json();
+        if (success && result) {
+          setResult(result);
+          return result;
+        }
+        antd.message.error(errorMsg);
+      }
+    } catch (error) {
+      antd.message.error(error.toString());
+    } finally {
+      setLoading(false);
+    }
+    return null;
+  };
+
+  const handleUpload = async () => {
+    try {
+      await form.validateFields();
+      const { caseId, feedback } = form.getFieldsValue();
+      const formData = new FormData();
+      formData.append('caseId', caseId);
+      formData.append('feedback', feedback);
+
+      const res = await fetch('/api/upload_feedback', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const { success, errorMsg } = await res.json();
+        if (success) {
+          antd.message.success('Upload successful');
+          handleQuery(); // 刷新查询结果
+        } else {
+          antd.message.error(errorMsg);
+        }
+      }
+    } catch (error) {
+      antd.message.error(error.toString());
+    } finally {
+      setIsModalOpen(false);
+    }
+  };
+
+  React.useEffect(() => {
+    handleQuery();
+  }, []);
+
+  return (
+    <div>
+      <div className="flex justify-between mb-4">
+        <antd.Form
+          name="basic"
+          layout="inline"
+          onFinish={handleQuery}
+          autoComplete="off"
+        >
+          <antd.Form.Item label="Case Id" name="caseId">
+            <antd.Input placeholder="Please Enter Case Id" />
+          </antd.Form.Item>
+          <antd.Form.Item>
+            <antd.Button type="primary" htmlType="submit">
+              Query
+            </antd.Button>
+          </antd.Form.Item>
+        </antd.Form>
+        <antd.Button onClick={showModal}>Upload</antd.Button>
+      </div>
+      <antd.Table
+        loading={loading}
+        bordered
+        columns={[
+          {
+            title: 'Case Id',
+            dataIndex: 'caseId',
+            key: 'caseId'
+          },
+          {
+            title: 'Feedback',
+            dataIndex: 'feedback',
+            key: 'feedback'
+          },
+        ]}
+        dataSource={result.list}
+        pagination={pagination}
+      />
+      <antd.Modal
+        title="Upload Feedback"
+        open={isModalOpen}
+        onOk={handleUpload}
+        onCancel={handleCancel}
+      >
+        <antd.Form
+          name="upload"
+          form={form}
+          autoComplete="off"
+        >
+          <antd.Form.Item
+            label="CaseId"
+            name="caseId"
+            rules={[{ required: true, message: 'Please enter CaseId' }]}
+          >
+            <antd.Input placeholder="Please enter CaseId" />
+          </antd.Form.Item>
+          <antd.Form.Item
+            label="Feedback"
+            name="feedback"
+            rules={[{ required: true, message: 'Please enter Feedback' }]}
+          >
+            <antd.Input.TextArea placeholder="Please enter Feedback" />
+          </antd.Form.Item>
+        </antd.Form>
+      </antd.Modal>
+    </div>
+  );
+};
+
+
+
 	</script>
 	<script type="text/babel">
 		const username = "{{ session['username'] }}";
@@ -849,6 +1009,8 @@
 						return <Welcome />;
 					case 'view_cases':
 						return <ViewCases />;
+					case 'feedback':
+						return <Feedback />;
 				}
 			};
 
@@ -884,6 +1046,7 @@
 							defaultSelectedKeys={[currentKey]}
 							items={[
 								getItem('Case Management', 'view_cases', null),
+								getItem('Feedback', 'feedback', null),
 								getItem('Logout', 'logout', null)
 							]}
 						/>
