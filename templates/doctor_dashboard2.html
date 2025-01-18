@@ -901,7 +901,7 @@ const Feedback = () => {
       if (res.ok) {
         const { success, errorMsg } = await res.json();
         if (success) {
-          antd.message.success('Upload successful');
+          antd.message.success('Thank you for your feedback. We will reply to you via email within one to three working days');
           handleQuery(); // 刷新查询结果
         } else {
           antd.message.error(errorMsg);
