@@ -899,9 +899,10 @@ def doctor_dashboard():
 
 
 
-@app.route('/plot')
+@app.route('/plot', methods=['POST'])
 def plot():
-    # filename = secure_filename(file.filename)
+    data = request.get_json()
+    # filename = secure_filename(data['filename'])
     # file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
     # data = pd.read_csv(file_path)
     # diagnosis, risk, loaded_data = predict(data.values)
@@ -915,11 +916,8 @@ def plot():
     headers = read_csv_headers("ASD Subject 02.csv")
 
     G = create_graph(node_features, edge_index, node_labels, headers)
-    edges = int(request.args.get('edges', 20))
-    opacity = float(request.args.get('opacity', 0.8))
-    fig_dict = generate_plotly_fig(G, edges, opacity)
-    return jsonify(fig_dict)
-
+    fig_dict = generate_plotly_fig(G, data['edges'], data['opacity'])
+    return {'success': True, 'result': fig_dict}, 200
 
 def read_csv_headers(file_path):
     with open(file_path, mode='r') as csv_file:
