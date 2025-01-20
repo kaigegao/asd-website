@@ -902,18 +902,18 @@ def doctor_dashboard():
 @app.route('/plot', methods=['POST'])
 def plot():
     data = request.get_json()
-    # filename = secure_filename(data['filename'])
-    # file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
-    # data = pd.read_csv(file_path)
-    # diagnosis, risk, loaded_data = predict(data.values)
-    with open("graph_data.pkl", "rb") as f:
-        loaded_data = pickle.load(f)
+    filename = secure_filename(data['filename'])
+    file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
+    csvdata = pd.read_csv(file_path)
+    diagnosis, risk, loaded_data = predict(csvdata.values)
+    # with open("graph_data.pkl", "rb") as f:
+    #     loaded_data = pickle.load(f)
 
     node_features = loaded_data.x.numpy()
     edge_index = loaded_data.edge_index.t().numpy()
     node_labels = loaded_data.y.numpy()
 
-    headers = read_csv_headers("ASD Subject 02.csv")
+    headers = read_csv_headers(file_path)
 
     G = create_graph(node_features, edge_index, node_labels, headers)
     fig_dict = generate_plotly_fig(G, data['edges'], data['opacity'])
@@ -958,16 +958,12 @@ def generate_plotly_fig(G, top_n_edges=20, opacity=0.8):
         weight_color_map[weight]['edges'].append(edge)
 
     fig = go.Figure(layout=go.Layout(
-        title='<br>网络图示例',
+
         titlefont_size=16,
         showlegend=False,
         hovermode='closest',
         margin=dict(b=20, l=5, r=5, t=40),
-        annotations=[dict(
-            text="Python code: <a href='https://plotly.com/'>https://plotly.com/</a>",
-            showarrow=False,
-            xref="paper", yref="paper",
-            x=0.005, y=-0.002)],
+
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
     )

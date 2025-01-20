@@ -1,2 +1,6 @@
 caseId,age,gender,name,fmri.image,file,uploadDate,diagnosis,risk,doctor
+0,1,aaa,aaa,,ASD_Subject_01.csv,2025-01-13 10:34:29,ASD,0.88888,gkg
+1,2,sss,aaa,,ASD_Subject_02.csv,2025-01-13 10:34:38,ASD,0.88888,gkg
+2,2,ccc,ccc,sub-28741_ses-1_task-rest_run-1_bold.nii.gz,sub-28741_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-13 10:34:51,ASD,0.99,gkg
+3,1,aaa,aaa,sub-28742_ses-1_task-rest_run-1_bold.nii.gz,sub-28742_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-13 10:35:16,ASD,0.88888,gkg
 0,1,1,1,sub-28742_ses-1_task-rest_run-1_bold.nii.gz,sub-28742_ses-1_task-rest_run-1_bold_timeseries.csv,2025-01-13 00:34:54,ASD,0.88888,gkg
