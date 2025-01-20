@@ -923,7 +923,7 @@ def read_csv_headers(file_path):
     with open(file_path, mode='r') as csv_file:
         csv_reader = csv.reader(csv_file)
         headers = next(csv_reader)  # 读取表头
-        headers = headers[1:]  # 跳过第一列
+        headers = headers[1:111]  # 跳过第一列
     return headers
 
 def create_graph(node_features, edge_index, node_labels, headers):
