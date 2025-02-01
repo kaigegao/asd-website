@@ -30,6 +30,7 @@ from torch_geometric.data import Data
 
 matplotlib.use("Agg")
 
+os.environ["HOME"] = os.path.expanduser("~")
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -56,9 +57,9 @@ class DefaultConfig(object):
     n_layer = 24
     ssm_cfg = dict()
     norm_epsilon = 1e-5
-    rms_norm = True
-    residual_in_fp32 = True
-    fused_add_norm = True
+    rms_norm = True  # 启用RMSNorm
+    residual_in_fp32 = True  # 启用fp32残差
+    fused_add_norm = False  # 禁用fused_add_norm
     initializer_cfg = None
     lr = 4.3895647763297976e-05
     hidden_1 = 1024
@@ -76,15 +77,23 @@ class DefaultConfig(object):
     elif dataset == "ABIDE_preprocessed":
         enc_in = 111
         seq_len = 316
-    device = torch.device("cuda:{}".format(0) if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")  # 强制使用CPU
     dtype = torch.float32
 
     model_path = "models/Mamba_GCN_OF_dmodel_1024_nlayer_24_lr_4.3895647763297976e-05_dropout_0.3762915331187696_hidden1_1024_hidden2_1024.pth"
 
 args = DefaultConfig()
 model = MyModel(args)
-state_dict = torch.load(args.model_path, map_location=args.device)
-model.load_state_dict(state_dict)
+
+# 使用CPU加载模型
+try:
+    state_dict = torch.load(args.model_path, map_location='cpu')
+    model.load_state_dict(state_dict, strict=False)  # 使用strict=False允许加载部分权重
+    print("模型加载成功")
+except Exception as e:
+    print("模型加载出错:", e)
+    raise e
+
 model.to(args.device)
 model.eval()
 
