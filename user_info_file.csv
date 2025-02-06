@@ -1,5 +1,2 @@
 username,email,password,role,hospital,registration_date
-gkg,450@qq.com,123,doctor,no1hos,2025-01-13 09:52:25
-qqq,w12121,123,doctor,111,2025-01-13 10:36:00
-qqqw,1212,123,user,,2025-01-13 10:36:12
-gkg,3242@qq.com,123,doctor,123,2025-01-12 00:19:01
+test,test@test.com,123456,doctor,test,2025/2/6 11:11
