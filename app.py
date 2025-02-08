@@ -97,6 +97,47 @@ except Exception as e:
 model.to(args.device)
 model.eval()
 
+class DefaultConfigNii(object):
+    dataset = "ABIDE_preprocessed"
+    ssm_cfg = dict()
+    norm_epsilon = 1e-5
+    rms_norm = True  # 启用RMSNorm
+    residual_in_fp32 = True  # 启用fp32残差
+    fused_add_norm = False  # 禁用fused_add_norm
+    initializer_cfg = None
+    num_class = 2
+    pred_len = 0
+    batch_size = 32
+    num_workers = 0
+    embed = "fixed"
+    freq = "h"
+    enc_in = 111
+    seq_len = 316
+    d_model = 128
+    n_layer = 12
+    lr = 1.402889935057092e-05  # Learning rate
+    hidden_1 = 128
+    hidden_2 = 128
+    dropout = 0.17165397371078353  # Dropout rate
+    model_path = "models/Mamba_GCN_OF_dmodel_128_nlayer_12_lr_1.402889935057092e-05_dropout_0.17165397371078353_hidden1_128_hidden2_128.pth"
+    device = torch.device("cpu")  # 强制使用CPU
+    dtype = torch.float32
+
+argsNii = DefaultConfigNii()
+modelNii = MyModel(argsNii)
+# 使用CPU加载模型
+try:
+    state_dictNii = torch.load(argsNii.model_path, map_location='cpu')
+    modelNii.load_state_dict(state_dictNii, strict=False)  # 使用strict=False允许加载部分权重
+    print("模型加载成功")
+except Exception as e:
+    print("模型加载出错:", e)
+    raise e
+modelNii.to(argsNii.device)
+modelNii.eval()
+
+
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -350,11 +391,13 @@ def upload_image_files():
         file_path = os.path.join(app.config.get("UPLOAD_FOLDER"), filename)
 
         file.save(file_path)
-        convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+        #convert_fmri_image_to_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
+        # TODO: 这里更改了fMRI到时序数据的函数，并且这个函数这里是没有第一列的unname:0无意义信息的，如果需要请自行修改index=True
+        convert_fmri_image_to_ho_timeseries(file_path, filename2, app.config.get("UPLOAD_FOLDER"))
 
-        file_path2 = os.path.join(app.config.get("UPLOAD_FOLDER"), filename2+ '_timeseries.csv')
+        file_path2 = os.path.join(app.config.get("UPLOAD_FOLDER"), filename2+ '_timeseries_predict.csv')
         data = pd.read_csv(file_path2)
-        diagnosis, risk, graph = predict(data.values)
+        diagnosis, risk, graph = predictNii(data.values)
 
         data = {
             'age': request.form.get("age"),
@@ -403,7 +446,48 @@ def upload_image_files():
         return {'success': True, 'result': str(case_id)}, 200
     except Exception as e:
         return {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}, 200
-    
+
+
+def convert_fmri_image_to_ho_timeseries(image_path, file_name, fmri_save_path):
+    # 设置atlas和标签文件路径 (假设在当前目录)
+    atlas_path = "ho/ho_roi_atlas.nii.gz"
+    labels_path = "ho/ho_labels.csv"
+    # 1. 加载数据
+    fmri_img = load_img(image_path)
+    atlas_img = load_img(atlas_path)
+    # 2. 读取标签文件
+    labels_df = pd.read_csv(labels_path)
+    labels = labels_df.iloc[:, 1].tolist()[1:]  # 假设第二列是区域名称
+    # 3. 创建背景掩码
+    mask = masking.compute_background_mask(fmri_img)
+    # 4. 将atlas重采样到与fMRI相同的空间
+    resampled_atlas = resample_to_img(atlas_img, mask, interpolation='nearest')
+    # 5. 创建掩码器
+    masker = NiftiLabelsMasker(
+        labels_img=resampled_atlas,
+        standardize=True,
+        memory='nilearn_cache',
+        verbose=0
+    )
+    # 6. 提取时间序列
+    time_series = masker.fit_transform(fmri_img)
+    # 7. 验证维度
+    if time_series.shape[1] != len(labels):
+        print('Error: time_series.shape[1] != len(labels)')
+        print(time_series.shape)
+        print(len(labels))
+        return
+    # 8. 创建DataFrame并保存
+    df = pd.DataFrame(time_series, columns=labels)
+    # 构建保存路径
+    save_path = os.path.join(fmri_save_path, file_name + '_timeseries_predict.csv')
+    # 保存为CSV
+    df.to_csv(save_path, index=False)
+    save_path2 = os.path.join(fmri_save_path, file_name + '_timeseries.csv')
+    # 保存为CSV
+    df.to_csv(save_path2, index=True)
+
+
 @app.route('/api/query_fmri_image_html_content', methods=['POST'])
 def query_fmri_image_html_content():
     data=request.get_json()
@@ -622,6 +706,7 @@ def query_csv_data():
 @app.route('/api/get_column_data', methods=['POST'])
 def get_column_data():
     data = request.get_json()
+
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['viewing_file'])
 
     try:
@@ -642,12 +727,20 @@ def get_column_data():
 @app.route('/predict', methods=['POST'])
 def predict_case():
     req = request.get_json()
+
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], req['viewing_file'])
     try:
+        if req['viewing_file'].endswith("timeseries.csv"):
+            file_path = file_path.replace(".csv", "") + "_predict.csv"
+        else:
+            file_path = file_path
         # 读取文件内容，将第一列设置为索引
+
         data = pd.read_csv(file_path)
-        # 假设你有一个预测函数 predict
-        diagnosis, risk, graph = predict(data.values)
+        if req['viewing_file'].endswith("timeseries.csv"):
+            diagnosis, risk, graph = predictNii(data.values)
+        else:
+            diagnosis, risk, graph = predict(data.values)
 
         #diagnosis, risk ='ASD',0.99
 
@@ -749,6 +842,43 @@ def predict(data):
     else:
         asd_risk = (1 - risk).__round__(4)
         return diagnosis, asd_risk, graph
+
+def predictNii(data):
+    inputs = preprocess_dataNii(data)
+    inputs = inputs.unsqueeze(0).float().to(argsNii.device)
+    with torch.no_grad():
+        try:
+            logit, _, _, _, graph = modelNii(inputs)
+            _, predicted = torch.max(logit, 1)
+            proba = torch.nn.functional.softmax(logit, dim=1).detach().cpu().numpy()
+            diagnosis = 'ASD' if predicted.item() == 0 else 'Normal'
+            risk = float(proba[0][predicted.item()]).__round__(4)
+        except Exception as e:
+            print("Error in predict:", e)
+            raise e
+    if diagnosis == 'ASD':
+        return diagnosis, risk, graph
+    else:
+        asd_risk = (1 - risk).__round__(4)
+        return diagnosis, asd_risk, graph
+
+def preprocess_dataNii(data):
+    seq_len = argsNii.seq_len
+    enc_in = argsNii.enc_in
+    current_seq_len, current_enc_in = data.shape
+
+    if current_seq_len < seq_len:
+        data = np.vstack((data, np.zeros((seq_len - current_seq_len, current_enc_in))))
+    elif current_seq_len > seq_len:
+        data = data[:seq_len, :]
+
+    if current_enc_in < enc_in:
+        data = np.hstack((data, np.zeros((seq_len, enc_in - current_enc_in))))
+    elif current_enc_in > enc_in:
+        data = data[:, :enc_in]
+
+    inputs = torch.tensor(data)
+    return inputs
 
 
 @app.route('/change_password', methods=['GET', 'POST'])
