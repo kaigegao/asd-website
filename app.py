@@ -696,7 +696,7 @@ def query_csv_data():
     records = []
     try:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], data['filename'])
-        df_final = pd.read_csv(file_path)
+        df_final = pd.read_csv(file_path, index_col=0)
         records = df_final.dropna().to_dict('records')
     except Exception as e:
         {'success': False, 'errorMsg': f'Error reading file {"caseInfo"}: {str(e)}'}
@@ -1166,4 +1166,4 @@ if __name__ == '__main__':
     # 设置上传文件夹路径
     # app.config['UPLOAD_FOLDER'] = r"E:\working_dir\py_project\zibizheng\uploads"
     # 确保上传文件夹存在
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=80)
