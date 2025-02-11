@@ -747,7 +747,7 @@ def predict_case():
         csv_path = app.config.get("case_save_file")
         df= pd.read_csv(csv_path)
 
-        # 找到df中‘file’列的值等于req['viewing_file']的那一行
+        # 找到df中'file'列的值等于req['viewing_file']的那一行
         match = df['file'] == req['viewing_file']
 
         if match.any():  # 如果找到了匹配的行
@@ -1159,7 +1159,47 @@ def json_traverse(obj, convert_function):
         return convert_function(obj)
 
 
+@app.route('/api/get_statistics', methods=['POST'])
+def get_statistics():
+    try:
+        # Read CSV file
+        df = pd.read_csv('cases_save_file.csv')
+        
+        # Calculate total samples (excluding header)
+        total_samples = len(df)
+        
+        # Calculate age distribution
+        age_bins = [0, 20, 40, 60, float('inf')]
+        age_labels = ['0-20', '21-40', '41-60', '60+']
+        df['age_group'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
+        age_distribution = df['age_group'].value_counts().reset_index()
+        age_distribution.columns = ['age', 'value']
+        age_distribution = age_distribution.to_dict('records')
+        
+        # Calculate sample distribution
+        diagnosis_counts = df['diagnosis'].value_counts()
+        positive_count = diagnosis_counts.get('ASD', 0)
+        negative_count = diagnosis_counts.get('Normal', 0)
 
+
+
+        return jsonify({
+            'success': True,
+            'result': {
+                'totalSamples': str(total_samples),
+                'ageDistribution': str(age_distribution),
+                'sampleDistribution': {
+                    'positive': str(positive_count),
+                    'negative': str(negative_count)
+                }
+            }
+        })
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        return jsonify({
+            'success': False,
+            'errorMsg': str(e)
+        })
 
 
 if __name__ == '__main__':

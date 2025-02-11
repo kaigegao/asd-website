@@ -52,12 +52,144 @@
 	</body>
 	<script type="text/babel">
 		const Welcome = () => {
-			const [] = React.useState();
+			const [statsData, setStatsData] = React.useState({
+				totalSamples: 0,
+				ageDistribution: [],
+				sampleDistribution: { positive: 0, negative: 0 }
+			});
+
+			React.useEffect(() => {
+				fetch('/api/get_statistics', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json'
+					}
+				})
+				.then(res => res.json())
+				.then(({success, result}) => {
+					if (success) {
+						// Parse string format data
+						const parsedData = {
+							totalSamples: parseInt(result.totalSamples),
+							ageDistribution: eval(result.ageDistribution), // Parse string array
+							sampleDistribution: {
+								positive: parseInt(result.sampleDistribution.positive),
+								negative: parseInt(result.sampleDistribution.negative)
+							}
+						};
+						console.log('Parsed statistics data:', parsedData);
+						setStatsData(parsedData);
+					}
+				})
+				.catch(error => {
+					console.error('Error fetching statistics:', error);
+					antd.message.error(error.toString());
+				});
+			}, []);
+
+			React.useEffect(() => {
+				console.log('Current statsData:', statsData);
+				
+				if (statsData.ageDistribution && statsData.ageDistribution.length > 0) {
+					console.log('Plotting age distribution:', statsData.ageDistribution);
+					const data = [{
+						values: statsData.ageDistribution.map(item => item.value),
+						labels: statsData.ageDistribution.map(item => item.age),
+						type: 'pie',
+						name: 'Age Distribution',
+						hole: 0.4  // 添加一个圆环效果，让图表看起来更紧凑
+					}];
+					
+					const layout = {
+						title: {
+							text: 'Age Distribution',
+							y: 0.02,
+							yanchor: 'bottom'
+						},
+						height: 380,
+						margin: { t: 60, b: 60, l: 20, r: 20 },
+						showlegend: true,
+						legend: {
+							orientation: 'h',
+							y: -0.2
+						}
+					};
+					
+					try {
+						Plotly.newPlot('age-distribution', data, layout);
+					} catch (error) {
+						console.error('Error plotting age distribution:', error);
+					}
+				}
+
+				if (statsData.sampleDistribution) {
+					console.log('Plotting sample distribution:', statsData.sampleDistribution);
+					const sampleData = [{
+						values: [statsData.sampleDistribution.positive, statsData.sampleDistribution.negative],
+						labels: ['ASD Cases', 'Normal Cases'],
+						type: 'pie',
+						name: 'Sample Distribution',
+						hole: 0.4  // 添加一个圆环效果，让图表看起来更紧凑
+					}];
+					
+					const sampleLayout = {
+						title: {
+							text: 'Case Distribution',
+							y: 0.02,
+							yanchor: 'bottom'
+						},
+						height: 380,
+						margin: { t: 60, b: 60, l: 20, r: 20 },
+						showlegend: true,
+						legend: {
+							orientation: 'h',
+							y: -0.2
+						}
+					};
+					
+					try {
+						Plotly.newPlot('sample-distribution', sampleData, sampleLayout);
+					} catch (error) {
+						console.error('Error plotting sample distribution:', error);
+					}
+				}
+			}, [statsData]);
 
 			return (
-				<div className="text-2xl">
-					On this website, you can upload CSV and NII.GZ files to
-					manage your cases
+				<div className="space-y-6">
+					<div className="text-3xl mb-4 font-medium">
+						Welcome to the Digital Diagnosis Model and System for Autism website, where you can analyze your case and help you manage your case
+					</div>
+					
+					<div className="grid grid-cols-2 gap-4">
+						<div className="bg-[rgba(0,0,0,0.02)] p-6 rounded-lg">
+							<div className="text-xl font-bold mb-4">Operation Instructions</div>
+							<div className="space-y-2 text-lg">
+								<div>1. Upload CSV or NII.GZ files on the "Case Management" page</div>
+								<div>2. The system will automatically analyze data and generate prediction results</div>
+								<div>3. You can view detailed data analysis and visualization results</div>
+								<div>4. Provide feedback on the "Feedback" page</div>
+							</div>
+						</div>
+						
+						<div className="bg-[rgba(0,0,0,0.02)] p-6 rounded-lg">
+							<div className="text-xl font-bold mb-4">Total Cases</div>
+							<div className="text-5xl font-bold text-blue-600">
+								{statsData.totalSamples}
+							</div>
+							<div className="text-lg text-gray-500 mt-2">Total Case Count</div>
+						</div>
+					</div>
+					
+					<div className="grid grid-cols-2 gap-4">
+						<div className="bg-[rgba(0,0,0,0.02)] p-6 rounded-lg">
+							<div id="age-distribution"></div>
+						</div>
+						
+						<div className="bg-[rgba(0,0,0,0.02)] p-6 rounded-lg">
+							<div id="sample-distribution"></div>
+						</div>
+					</div>
 				</div>
 			);
 		};
@@ -251,7 +383,7 @@
 				<div className="w-full">
 					<div className="relative mt-4 min-h-[450px]">
 						<antd.Select
-							placeholder="请选择"
+							placeholder="Please select"
 							className="w-[200px] absolute top-[26px] left-0 z-[1000]"
 							value={selectedColumn}
 							onChange={setSelectedColumn}
