@@ -840,6 +840,8 @@ def predict(data):
             if risk == "1.0000":
                 risk = "0.9999"
             risk = float(risk)
+            if risk * 1000 % 1 == 0:  # 这将检查最后一位是否为0
+                risk = risk + 0.0001  # 将最后一个0替换为1
         except Exception as e:
             print("Error in predict:", e)
             raise e
@@ -847,6 +849,10 @@ def predict(data):
         return diagnosis, risk, graph
     else:
         asd_risk = (1 - risk).__round__(4)
+        asd_risk = f"{asd_risk:.4f}"
+        asd_risk = float(asd_risk)
+        if asd_risk * 1000 % 1 == 0:  # 这将检查最后一位是否为0
+            asd_risk = asd_risk + 0.0001  # 将最后一个0替换为1
         return diagnosis, asd_risk, graph
 
 def predictNii(data):
@@ -865,6 +871,8 @@ def predictNii(data):
             if risk == "1.0000":
                 risk = "0.9999"
             risk = float(risk)
+            if risk * 1000 % 1 == 0:  # 这将检查最后一位是否为0
+                risk = risk + 0.0001  # 将最后一个0替换为1
         except Exception as e:
             print("Error in predict:", e)
             raise e
@@ -872,6 +880,10 @@ def predictNii(data):
         return diagnosis, risk, graph
     else:
         asd_risk = (1 - risk).__round__(4)
+        asd_risk = f"{asd_risk:.4f}"
+        asd_risk = float(asd_risk)
+        if asd_risk * 1000 % 1 == 0:  # 这将检查最后一位是否为0
+            asd_risk = asd_risk + 0.0001  # 将最后一个0替换为1
         return diagnosis, asd_risk, graph
 
 def preprocess_dataNii(data):
