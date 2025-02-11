@@ -834,6 +834,12 @@ def predict(data):
             proba = torch.nn.functional.softmax(logit, dim=1).detach().cpu().numpy()
             diagnosis = 'ASD' if predicted.item() == 0 else 'Normal'
             risk = float(proba[0][predicted.item()]).__round__(4)
+            # 确保风险值保留4位小数，不足4位加0
+            risk = f"{risk:.4f}"
+            # 如果风险值为1，则将其替换为0.9999
+            if risk == "1.0000":
+                risk = "0.9999"
+            risk = float(risk)
         except Exception as e:
             print("Error in predict:", e)
             raise e
@@ -853,6 +859,12 @@ def predictNii(data):
             proba = torch.nn.functional.softmax(logit, dim=1).detach().cpu().numpy()
             diagnosis = 'ASD' if predicted.item() == 0 else 'Normal'
             risk = float(proba[0][predicted.item()]).__round__(4)
+            # 确保风险值保留4位小数，不足4位加0
+            risk = f"{risk:.4f}"
+            # 如果风险值为1，则将其替换为0.9999
+            if risk == "1.0000":
+                risk = "0.9999"
+            risk = float(risk)
         except Exception as e:
             print("Error in predict:", e)
             raise e
