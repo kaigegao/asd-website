@@ -1174,6 +1174,12 @@ def get_statistics():
         df['age_group'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
         age_distribution = df['age_group'].value_counts().reset_index()
         age_distribution.columns = ['age', 'value']
+        # 将'age'列转换为分类类型，并指定顺序
+        age_distribution['age'] = pd.Categorical(age_distribution['age'], categories=age_labels, ordered=True)
+
+        # 按照指定的顺序排序
+        age_distribution = age_distribution.sort_values('age')
+
         age_distribution = age_distribution.to_dict('records')
         
         # Calculate sample distribution

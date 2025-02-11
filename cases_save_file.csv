@@ -1,8 +1,9 @@
 caseId,age,gender,name,fmri.image,file,uploadDate,diagnosis,risk,doctor
-0,1,male,test,,data0.csv,2025-02-06 11:13:24,ASD,0.7892,test
-1,1,male,test,,data2.csv,2025-02-06 11:13:37,Normal,0.1039,test
-2,1,male,test,,data8.csv,2025-02-06 11:13:54,ASD,1.0,test
-3,1,male,test,data4.nii.gz,data4_timeseries.csv,2025-02-06 11:14:23,Normal,0.4633,test
-4,1,male,test,data6.nii.gz,data6_timeseries.csv,2025-02-06 11:15:00,ASD,0.5019,test
-5,1,male,test,data10.nii.gz,data10_timeseries.csv,2025-02-06 11:15:29,Normal,0.4888,test
-6,1,male,test,data11.nii.gz,data11_timeseries.csv,2025-02-06 11:15:57,Normal,0.2552,test
+0,1,male,test,,data0.csv,2025/2/6 11:13,ASD,0.7892,test
+1,5,male,test,,data2.csv,2025/2/6 11:13,Normal,0.1039,test
+2,7,male,test,,data8.csv,2025/2/6 11:13,ASD,1,test
+3,11,test,test,sub-28741_ses-1_task-rest_run-1_bold.nii.gz,sub-28741_ses-1_task-rest_run-1_bold_timeseries.csv,2025/2/8 22:03,ASD,0.5058,test
+4,21,male,test,data4.nii.gz,data4_timeseries.csv,2025/2/8 22:06,Normal,0.488,test
+5,3,male,test,data6.nii.gz,data6_timeseries.csv,2025/2/8 22:07,ASD,0.5093,test
+6,5,male,test,data10.nii.gz,data10_timeseries.csv,2025/2/8 22:07,Normal,0.4874,test
+7,2,male,test,data11.nii.gz,data11_timeseries.csv,2025/2/8 22:08,Normal,0.4633,test

@@ -91,13 +91,29 @@
 				console.log('Current statsData:', statsData);
 				
 				if (statsData.ageDistribution && statsData.ageDistribution.length > 0) {
-					console.log('Plotting age distribution:', statsData.ageDistribution);
+					console.log('原始年龄分布数据:', statsData.ageDistribution);
+					
+					// 定义固定的年龄范围顺序
+					const ageOrder = ['0-3', '4-6', '6-9', '10-20', '20+'];
+					console.log('预期的年龄顺序:', ageOrder);
+					
+					// 按照固定顺序重新排序数据
+					const sortedData = ageOrder.map(age => {
+						const found = statsData.ageDistribution.find(item => item.age === age);
+						console.log(`查找年龄 ${age}:`, found);
+						return found || { age: age, value: 0 };
+					});
+					
+					console.log('排序后的数据:', sortedData);
+					
 					const data = [{
-						values: statsData.ageDistribution.map(item => item.value),
-						labels: statsData.ageDistribution.map(item => item.age),
+						values: sortedData.map(item => item.value),
+						labels: sortedData.map(item => item.age),
 						type: 'pie',
 						name: 'Age Distribution',
-						hole: 0.4  // 添加一个圆环效果，让图表看起来更紧凑
+						hole: 0.4,
+						// 禁用自动排序
+						sort: false
 					}];
 					
 					const layout = {
