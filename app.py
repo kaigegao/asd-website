@@ -1169,8 +1169,8 @@ def get_statistics():
         total_samples = len(df)
         
         # Calculate age distribution
-        age_bins = [0, 20, 40, 60, float('inf')]
-        age_labels = ['0-20', '21-40', '41-60', '60+']
+        age_bins = [0, 3, 6, 9, 20, float('inf')]
+        age_labels = ['0-3', '4-6', '6-9', '10-20', '20+']
         df['age_group'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
         age_distribution = df['age_group'].value_counts().reset_index()
         age_distribution.columns = ['age', 'value']
